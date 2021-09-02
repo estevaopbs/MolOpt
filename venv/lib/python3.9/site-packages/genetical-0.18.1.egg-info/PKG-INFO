@@ -1,0 +1,20 @@
+Metadata-Version: 1.1
+Name: genetical
+Version: 0.18.1
+Summary: Genetic Algorithm engine built in _Genetic Algorithms with Python_
+Home-page: https://github.com/handcraftsman/genetical
+Author: Clinton Sheppard
+Author-email: fluentcoder@gmail.com
+License: Apache License, Version 2.0
+Download-URL: https://github.com/handcraftsman/genetical/tarball/0.18.1
+Description: UNKNOWN
+Keywords: evolutionary,genetic algorithm,framework
+Platform: any
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Natural Language :: English
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence

@@ -264,7 +264,7 @@ def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
             index1, index2 = index2, index1
         if random.choice([True, False]):
             child.parameters[:index1] = donor.parameters[:index1]
-            child.parameters[index2:] = donor.parameters[:index2]
+            child.parameters[index2:] = donor.parameters[index2:]
         else:
             child.parameters[index1:index2] = donor.parameters[index1:index2]
     return child

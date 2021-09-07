@@ -4,20 +4,21 @@ import os
 
 
 class Molecule:
-    __slots__ = ('basis', 'parameters', 'geometry', 'settings', 'rand_range', 'label', 'total_energy', 
-                 'output_values', 'mutate_methods', 'output')
-    def __init__(self, basis:str, geometry:list, settings:list, parameters:dict=dict(), rand_range=None, label:str=None, 
-                 total_energy=None, output:str=None, output_values:dict=dict(), mutate_methods:list=None):
+    __slots__ = ('basis', 'parameters', 'geometry', 'settings', 'rand_range', 'label', 'output_values', 'output')
+    def __init__(self, basis:str, geometry:list, settings:list, parameters:dict=dict(), rand_range:float=None, 
+                 label:str=None, output:str=None, output_values:dict=dict()):
         self.basis = basis
         self.parameters = parameters
         self.geometry = geometry
         self.settings = settings
         self.rand_range = rand_range
         self.label = label
-        self.total_energy = total_energy
         self.output = output
         self.output_values = output_values
-        self.mutate_methods = mutate_methods
+
+    @property
+    def dist_unit(self):
+        return self.geometry[0][0]
 
     def __str__(self) -> str:
         string = f'***,\n\nbasis={self.basis}\n\n'
@@ -42,11 +43,16 @@ class Molecule:
             os.mkdir(directory)
         open(f'{directory}/{document}.inp', 'w').write(str(self))
 
-    def get_value(self, wanted:list, document=None, directory:str='data',wait:bool=True) -> None:
+    def get_value(self, wanted:list, document=None, directory:str='data', wait:bool=True, keep_output:bool=True) -> None:
         document = document if document is not None else self.label if self.label is not None else self.__hash__()
         directory += '/'
+        input_address = directory + document
+        deldoc = False
+        if not os.path.isfile(input_address):
+            self.save(document, directory)
+            deldoc = True
         output_address = f'{directory}{document[:-3]}out'
-        if not os.path.isfile(f'{output_address}'):
+        if not os.path.isfile(output_address):
             os.system(f'molpro {directory}{document}')
         if wait or os.path.isfile(f'{output_address}'):
             while not os.path.isfile(f'{output_address}'):
@@ -56,10 +62,36 @@ class Molecule:
             for item in wanted:
                 self.output_values.update({item: re.search(f'{item}.*', outstr)[0]})
         self.output = f'{document[:-3]}out'
+        if deldoc:
+            os.remove(input_address)
+        if not keep_output:
+            os.remove(output_address)
+    
+    def copy(self):
+        return(Molecule(self.basis, self.geometry, self.settings, self.parameters, self.rand_range, self.label,
+                        self.output, self.output_values))
+    
+    def swap_mutate(self):
+        self._receive(swap_mutate(self))
+
+    def _receive(self, molecule):
+        self.basis = molecule.basis
+        self.parameters = molecule.parameters
+        self.geometry = molecule.geometry
+        self.settings = molecule.settings
+        self.rand_range = molecule.rand_range
+        self.label = molecule.label
+        self.output = molecule.output
+        self.output_values = molecule.output_values
+
+    def mutate_distances(self):
+        self._receive(mutate_distances(self))
+    
+    def mutate_angles(self):
+        self._receive(mutate_angles(self))
 
     @staticmethod
-    def load(file:str, rand_range=None, label:str=None, total_energy=None, output=None, output_values=None,
-             mutate_methods=None):
+    def load(file:str, rand_range=None, label:str=None, output=None, output_values=None):
         inpstr = re.search('\*\*\*,.*---', open(file, 'r').read(), flags=re.S)[0]
         basis = re.search('basis=.*', inpstr)[0].split('=')[1]
         splitinpstr = inpstr.split('\n\n')
@@ -75,48 +107,54 @@ class Molecule:
         geometry = [re.split(' *, *', row) for row in re.search('{.*}', inpstr, flags=re.S)[0].split('\n')[0:-1]]
         geometry[0][0]=geometry[0][0][1:].replace('{', '').replace(' ', '')
         settings = splitinpstr[settings_location].split('\n')
-        return Molecule(basis, geometry, settings, parameters, rand_range, label, total_energy, output, output_values, 
-                        mutate_methods)
+        return Molecule(basis, geometry, settings, parameters, rand_range, label, output, output_values)
     
-    def swap_mutate(self):
-        index0 = random.choice(range(1, len(self.geometry)))
-        index1 = random.choice(range(2, len(self.geometry[index0]), 2))
-        if index1 == 0:
-            index2 = random.choice(range(1, len(self.geometry)))
-            index3 = 0
-        elif index1 == 2:
-            index2 = random.choice(range(1, len(self.geometry)))
-            index3 = 2
-        else:
-            index2 = random.choice(range(3, len(self.geometry)))
-            index3 = random.choice(range(4, len(self.geometry[index0]), 2))
-        self.geometry[index0][index1], self.geometry[index2][index3] =\
-        self.geometry[index2][index3], self.geometry[index0][index1]
-    
-    def mutate_angles(self):
-        index0 = random.choice(range(3, len(self.geometry)))
-        index1 = random.choice(range(4, len(self.geometry[index0]), 2))
-        if self.geometry[index0][index1].replace('.', '').isdigit():
-            self.geometry[index0][index1] = str(random.uniform(0, 180))
-        else:
-            self.parameters[self.geometry[index0][index1]] = str(random.uniform(0, 180))
-    
-    def mutate_distances(self):
-        index0 = random.choice(range(1, len(self.geometry)))
-        if self.geometry[index0][2].replace('.', '').isdigit():
-            self.geometry[index0][2] = str(random.uniform(0, self.rand_range))
-        else:
-            self.parameters[self.geometry[index0][2]] = str(random.uniform(0, self.rand_range))
-    
-    def mutate(self):
-        random.choice(self.mutate_methods)(self)
 
-    def copy(self):
-        return(Molecule(self.basis, self.parameters, self.geometry, self.settings, self.rand_range, self.label, 
-                        self.total_energy, self.output, self.output_values, self.mutate_methods))
+def swap_mutate(molecule):
+    new_molecule = molecule.copy()
+    index0 = random.choice(range(1, len(new_molecule.geometry)))
+    index1 = random.choice(range(2, len(new_molecule.geometry[index0]), 2))
+    if index1 == 0:
+        index2 = random.choice(range(1, len(new_molecule.geometry)))
+        index3 = 0
+    elif index1 == 2:
+        index2 = random.choice(range(1, len(new_molecule.geometry)))
+        index3 = 2
+    else:
+        index2 = random.choice(range(3, len(new_molecule.geometry)))
+        index3 = random.choice(range(4, len(new_molecule.geometry[index0]), 2))
+    new_molecule.geometry[index0][index1], new_molecule.geometry[index2][index3] =\
+    new_molecule.geometry[index2][index3], new_molecule.geometry[index0][index1]
+    new_molecule.output = None
+    new_molecule.output_values = None
+    return new_molecule
 
 
-def random_molecule(molecule:str, basis:str, settings:list, rand_range:float, label:str=None, dist_unit:str='ang') -> Molecule:
+def mutate_angles(molecule):
+    new_molecule = molecule.copy()
+    index0 = random.choice(range(3, len(new_molecule.geometry)))
+    index1 = random.choice(range(4, len(new_molecule.geometry[index0]), 2))
+    if new_molecule.geometry[index0][index1].replace('.', '').isdigit():
+        new_molecule.geometry[index0][index1] = str(random.uniform(0, 180))
+    else:
+        new_molecule.parameters[new_molecule.geometry[index0][index1]] = str(random.uniform(0, 180))
+    return new_molecule
+
+
+def mutate_distances(molecule):
+    new_molecule = molecule.copy()
+    index0 = random.choice(range(1, len(new_molecule.geometry)))
+    if new_molecule.geometry[index0][2].replace('.', '').isdigit():
+        new_molecule.geometry[index0][2] = str(random.uniform(0, new_molecule.rand_range))
+    else:
+        new_molecule.parameters[new_molecule.geometry[index0][2]] = str(random.uniform(0, new_molecule.rand_range))+
+    new_molecule.output = None
+    new_molecule.output_values = None
+    return new_molecule
+
+
+def random_molecule(molecule:str, basis:str, settings:list, rand_range:float,
+                    label:str=None, dist_unit:str='ang') -> Molecule:
     atoms = re.findall('[A-Z][a-z]*[1-9]*', molecule)
     geometry = [[dist_unit]]
     for atom in atoms:
@@ -137,11 +175,11 @@ def random_molecule(molecule:str, basis:str, settings:list, rand_range:float, la
     return Molecule(basis, geometry, settings, rand_range=rand_range, label=label)
 
 
-def n_crossover(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
+def crossover_n(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     child = parent.copy()
     child.label = label
-    n_parameters = random.randint(1, len(child.parameters)-2)
-    n_atoms = random.randint(1, len(child.geometry) - 2)
+    n_parameters = random.randint(1, len(child.parameters) - 1) if len(child.parameters > 0) else 0
+    n_atoms = random.randint(1, len(child.geometry) - 3)
     parameters_indexes = []
     atoms_indexes = []
     for _ in range(n_parameters):
@@ -152,9 +190,81 @@ def n_crossover(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
         key = list(child.parameters.keys())[index]
         child.parameters[key] = donor.parameters[key]
     for _ in range(n_atoms):
-        index = random.randint(1, len(child.geometry))
+        index = random.randint(2, len(child.geometry))
         while index in atoms_indexes:
-            index = random.randint(1, len(child.geometry))
+            index = random.randint(2, len(child.geometry))
         atoms_indexes.append(index)
-        child.parameters[index] = donor.parameters[index]
+        child.geometry[index] = donor.geometry[index]
+    child.output = None
+    child.output_values = None
+    return child
+
+
+def randomize(molecule:Molecule, label:str=None) -> Molecule:
+    new_molecule = molecule.copy()
+    new_molecule.label = label
+    for row_index in range(2, len(new_molecule.geometry)):
+        if new_molecule.geometry[row_index][2].replace('.', '').isdigit():
+            new_molecule.geometry[row_index][2] = str(random.uniform(0, new_molecule.rand_range))
+        else:
+            new_molecule.parameters[new_molecule.geometry[row_index][2]] =\
+                str(random.uniform(0, new_molecule.rand_range))
+        for angle_index in range(4, len(new_molecule.geometry[row_index]), 2):
+            if new_molecule.geometry[row_index][angle_index].replace('.', '').isdigit():
+                new_molecule.geometry[row_index][angle_index] = str(random.uniform(0, 180))
+            else:
+                new_molecule.parameters[new_molecule.geometry[row_index][angle_index]] = str(random.uniform(0, 180))
+    new_molecule.output = None
+    new_molecule.output_values = None
+    return new_molecule
+
+
+def crossover_1(parent:Molecule, donor:Molecule, label:str=None):
+    child = parent.copy()
+    child.label = label
+    index = random.choice(range(2, len(child.geometry)))
+    if random.choice([True, False]):
+        child.geometry[index:] = donor.geometry[index:]
+    else:
+        child.geometry[:index] = donor.geometry[:index]
+    if len(child.parameters) > 0:
+        index = random.choice(range(0, len(child.parameters)))
+        if random.choice([True, False]):
+            child.parameters[index:] = donor.parameters[index:]
+        else:
+            child.parameters[:index] = donor.parameters[:index]
+    child.output = None
+    child.output_values = None
+    return child
+
+
+def crossover_2(parent:Molecule, donor:Molecule, label:str=None):
+    if len(parent.geometry < 5):
+        raise Exception('Molecules does not has enough atoms for crossover_2.')
+    child = parent.copy()
+    child.label = label
+    child.output = None
+    child.output_values = None
+    index1 = random.choice(range(2, len(child.geometry)))
+    index2 = random.choice(range(2, len(child.geometry)))
+    while index1 == index2 or ((index1 == 2 and index2 == len(child.geometry)) or (index1 == len(child.geometry) and index2 == 2)):
+        index1 = random.choice(range(2, len(child.geometry)))
+        index2 = random.choice(range(2, len(child.geometry)))
+    if index1 > index2:
+        index1, index2 = index2, index1
+    if random.choice([True, False]):
+        child.geometry[:index1] = donor.geometry[:index1]
+        child.geometry[index2:] = donor.geometry[:index2]
+    else:
+        child.geometry[index1:index2] = donor.geometry[index1:index2]
+    if len(child.parameters) > 0:
+        index1 = random.choice(range(0, len(child.parameters)))
+        index2 = random.choice(range(0, len(child.parameters)))
+        if index1 > index2:
+            index1, index2 = index2, index1
+        if random.choice([True, False]):
+            child.parameters[:index1] = donor.parameters[:index1]
+            child.parameters[index2:] = donor.parameters[:index2]
+        else:
+            child.parameters[index1:index2] = donor.parameters[index1:index2]
     return child

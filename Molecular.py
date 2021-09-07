@@ -110,7 +110,7 @@ class Molecule:
         return Molecule(basis, geometry, settings, parameters, rand_range, label, output, output_values)
     
 
-def swap_mutate(molecule):
+def swap_mutate(molecule) -> Molecule:
     new_molecule = molecule.copy()
     index0 = random.choice(range(1, len(new_molecule.geometry)))
     index1 = random.choice(range(2, len(new_molecule.geometry[index0]), 2))
@@ -130,7 +130,7 @@ def swap_mutate(molecule):
     return new_molecule
 
 
-def mutate_angles(molecule):
+def mutate_angles(molecule) -> Molecule:
     new_molecule = molecule.copy()
     index0 = random.choice(range(3, len(new_molecule.geometry)))
     index1 = random.choice(range(4, len(new_molecule.geometry[index0]), 2))
@@ -141,13 +141,13 @@ def mutate_angles(molecule):
     return new_molecule
 
 
-def mutate_distances(molecule):
+def mutate_distances(molecule) -> Molecule:
     new_molecule = molecule.copy()
     index0 = random.choice(range(1, len(new_molecule.geometry)))
     if new_molecule.geometry[index0][2].replace('.', '').isdigit():
         new_molecule.geometry[index0][2] = str(random.uniform(0, new_molecule.rand_range))
     else:
-        new_molecule.parameters[new_molecule.geometry[index0][2]] = str(random.uniform(0, new_molecule.rand_range))+
+        new_molecule.parameters[new_molecule.geometry[index0][2]] = str(random.uniform(0, new_molecule.rand_range))
     new_molecule.output = None
     new_molecule.output_values = None
     return new_molecule
@@ -219,7 +219,7 @@ def randomize(molecule:Molecule, label:str=None) -> Molecule:
     return new_molecule
 
 
-def crossover_1(parent:Molecule, donor:Molecule, label:str=None):
+def crossover_1(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     child = parent.copy()
     child.label = label
     index = random.choice(range(2, len(child.geometry)))
@@ -238,7 +238,7 @@ def crossover_1(parent:Molecule, donor:Molecule, label:str=None):
     return child
 
 
-def crossover_2(parent:Molecule, donor:Molecule, label:str=None):
+def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     if len(parent.geometry < 5):
         raise Exception('Molecules does not has enough atoms for crossover_2.')
     child = parent.copy()

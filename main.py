@@ -30,11 +30,11 @@ class test_Optimization(unittest.TestCase):
         elit_size = 0.1
         elitism_rate = 0.2 
         max_seconds = 120
-        generations_tolerane = 20
+        generations_tolerance = 20
         crossover_elitism = lambda x: 1
 
         self.optimize(
-            molecule, strategies, max_age, pool_size, elit_size, elitism_rate, max_seconds, generations_tolerane, 
+            molecule, strategies, max_age, pool_size, elit_size, elitism_rate, max_seconds, generations_tolerance, 
             crossover_elitism
             )
 

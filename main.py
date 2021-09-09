@@ -71,22 +71,15 @@ class test_Optimization(unittest.TestCase):
             Strategies.Crossover: crossover_lookup
         }
 
-        #print(first_molecule)
-        #print(strategy_lookup[Strategies.Create][Create.mutate_first](first_molecule))
-
         def get_child(candidates, parent_index): # candidates precisa estar organizado com fitness decrescente
             parent = candidates[parent_index]
             donor = random.choices(candidates, [crossover_elitism(n) for n in reversed(range(len(candidates)))])[0]
             child = Chromosome
             child.Strategy = random.choices(strategies.strategies, strategies.rate)[0]
             child.Method = random.choices(child.Strategy.methods, child.Strategy.rate)[0]
-            child.Genes = strategy_lookup[child.Strategy.strategy][child.Method](parent, donor)
+            child.Genes = strategy_lookup[child.Strategy.strategy][child.Method](parent.Genes, donor.Genes)
             get_fitness(child)
             return child
-
-        
-        print(get_child([first_molecule], 0).Genes)
-
         
         def fn_display(candidate):
             display(candidate, start_time)

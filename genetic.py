@@ -1,40 +1,54 @@
-from enum import Enum
-import Molecular
-
-
 class Chromosome:
     Genes = None
     Fitness = None
     Age = 0
-    Strategy_1 = None
-    Strategy_2 = None
+    Strategy = None
+    Method = None
 
-    def __init__(self, genes, fitness, strategy1, strategy2):
+    def __init__(self, genes, fitness, strategy, method):
         self.Genes = genes
         self.Fitness = fitness
-        self.Strategy_1 = strategy1
-        self.Strategy_2 = strategy2
+        self.Strategy = strategy
+        self.Method = method
 
 
-class Strategies(Enum):
+class Strategies:
     Create = 0
     Mutate = 1
     Crossover = 2
 
-
-class Create(Enum):
-    full_random = 0
-    from_file = 1
-    random_from_file = 2
+    def __init__(self, strategies:list, strategies_rate:list):
+        self.strategies = strategies
+        self.rate = strategies_rate
 
 
-class Mutate(Enum):
+class Create:
+    randomize = 0
+    mutate_first = 2
+    strategy = 0
+
+    def __init__(self, methods:list, methods_rate:list):
+        self.methods = methods
+        self.rate = methods_rate
+
+
+class Mutate:
     swap_mutate = 0
     mutate_angles = 1
     mutate_distances = 2
+    strategy = 1
+
+    def __init__(self, methods:list, methods_rate:list):
+        self.methods = methods
+        self.rate = methods_rate
 
 
-class Crossover(Enum):
+class Crossover:
     crossover_n = 0
     crossover_1 = 1
     crossover_2 = 2
+    strategy = 2
+
+    def __init__(self, methods:list, methods_rate:list):
+        self.methods = methods
+        self.rate = methods_rate

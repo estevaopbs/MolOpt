@@ -2,7 +2,6 @@ from genetic import *
 from Molecular import *
 import unittest
 import datetime
-import time
 from bisect import bisect_left
 from math import exp
 import random
@@ -10,93 +9,84 @@ import random
 
 def display(candidate, start_time):
     time_diff = datetime.datetime.now() - start_time
-    print("{0}\t{1}\t{2}".format(candidate.total_energy), str(time_diff))
+    print("{0}\t{1}".format(candidate.total_energy), str(time_diff))
 
 
 def get_fitness(candidate):
     #verificar
-    candidate.Fitness =  - float(candidate.get_value('total energy'))
+    candidate.Fitness =  - float(candidate.Genes.get_value('total energy'))
     return candidate.Fitness
 
 
 class test_Optimization(unittest.TestCase):
     def test_h2co(self):
-        file = None
-        mutate_methods = [
-            Mutate.swap_mutate, 
-            Mutate.mutate_distances, 
-            Mutate.mutate_angles
-            ]
-        methods_rate = [0.2, 0.4, 0.4]
-        crossover_methods = [crossover_n]
-        crossover_methods_rate = [1]
-        atoms = 'H2O'
-        basis = 'vdz'
-        settings = ['SET,CHARGE=0', 'hf', 'CCSD(T)', 'optg', 'freq']
-        rand_range = 2
-        dist_unit = 'ang'
-
+        molecule = random_molecule('H2O', 'vdz', ['hf'], 2)
+        mutate_methods = Mutate([Mutate.swap_mutate, Mutate.mutate_angles, Mutate.mutate_distances], [1, 1, 1])
+        crossover_methods = Crossover([Crossover.crossover_n, Crossover.crossover_1, Crossover.crossover_2], [1, 1, 1])
+        create_methods = Create([Create.randomize, Create.mutate_first], [1, 0])
+        strategies = Strategies([create_methods, mutate_methods, crossover_methods], [0, 1, 1])
         max_age = 20
         pool_size = 20
-        elitism_rate = 0.2
-        crossover_rate = 0.2
+        elit_size = 0.1
+        elitism_rate = 0.2 
         max_seconds = 120
+        generations_tolerane = 20
+        crossover_elitism = lambda x: 1
 
-        self.optmize(file, mutate_methods, atoms, basis, settings, rand_range, dist_unit, max_age, pool_size, 
-                     elitism_rate, max_seconds, crossover_rate, methods_rate)
+        self.optimize(
+            molecule, strategies, max_age, pool_size, elit_size, elitism_rate, max_seconds, generations_tolerane, 
+            crossover_elitism
+            )
 
-    def optimize(file, mutate_methods, atoms=None, basis=None, settings=None, rand_range=None, dist_unit=None,
-                 max_age=20, pool_size=1, elitism_rate=0, max_seconds=60, crossover_rate=0, mutate_methods_rate=None,
-                 crossover_methods = [crossover_n], crossover_methods_rate=[1], crossover_elitism=lambda x: 1,
-                 create_methods=None):
+    def optimize(
+        self, first_molecule:Molecule, strategies, max_age:int, pool_size:int, elit_size:float, elitism_rate:float, 
+        max_seconds:float, generations_tolerance:int, crossover_elitism
+        ):
 
         start_time= datetime.datetime.now()
 
-        strategy_lookup = {
-        Strategies.Create: lambda: create_candidate(),
-        Strategies.Mutate: Mutate,
-        Strategies.Crossover: Crossover
-        }
+        for strategy in strategies.strategies:
+            if type(strategy) is Mutate:
+                mutate_methods = strategy
+                break
+
         mutate_lookup = {
-            Mutate.swap_mutate: lambda x: Molecular.swap_mutate(x),
-            Mutate.mutate_angles: lambda x: Molecular.mutate_angles(x),
-            Mutate.mutate_distances: lambda x: Molecular.mutate_distances(x)
+            Mutate.swap_mutate: lambda p, d=0: swap_mutate(p),
+            Mutate.mutate_angles: lambda p, d=0: mutate_angles(p),
+            Mutate.mutate_distances: lambda p, d=0: mutate_distances(p)
         }
         crossover_lookup = {
-            Crossover.crossover_n: lambda p, d: Molecular.n_crossover(p, d)
+            Crossover.crossover_n: lambda p, d: crossover_n(p, d),
+            Crossover.crossover_1: lambda p, d: crossover_1(p, d),
+            Crossover.crossover_2: lambda p, d: crossover_2(p, d)
+        }
+        create_lookup = {
+            Create.randomize: lambda p, d=0: randomize(p),
+            Create.mutate_first: lambda p, d=0: mutate_lookup[random.choices(mutate_methods.methods, mutate_methods.rate)[0]](first_molecule)
+            # At least one mutate method is needed for this one
+        }
+        strategy_lookup = {
+            Strategies.Create: create_lookup,
+            Strategies.Mutate: mutate_lookup,
+            Strategies.Crossover: crossover_lookup
         }
 
-        if mutate_methods_rate is None:
-            mutate_methods_rate = [1 for _ in mutate_methods]
+        #print(first_molecule)
+        #print(strategy_lookup[Strategies.Create][Create.mutate_first](first_molecule))
 
-        def mutate(candidate):
-            mutate_method = random.choices(mutate_methods, mutate_methods_rate)[0]
-            return mutate_method(candidate)
-
-        def crossover(candidates, parent_index):
-            crossover_weights = [crossover_elitism(n) for n in [i + 1 for i in reversed(range(len(candidates)))]]
-            donor = random.choices(candidates, crossover_weights)
-            return random.choices(crossover_methods, crossover_methods_rate)(candidates[parent_index], donor)
-
-        def get_child(candidates, parent_index):
+        def get_child(candidates, parent_index): # candidates precisa estar organizado com fitness decrescente
             parent = candidates[parent_index]
-            if random.choices([0, 1], [1 - crossover_rate, crossover_rate])[0] == 0:
-                child_molecule = candidates[parent_index].copy()
-                child_molecule, strategy = mutate(child_molecule)
-            else:
-                child_molecule = crossover(candidates, parent_index)
-            return Chromosome(child_molecule, get_fitness(child_molecule), )
+            donor = random.choices(candidates, [crossover_elitism(n) for n in reversed(range(len(candidates)))])[0]
+            child = Chromosome
+            child.Strategy = random.choices(strategies.strategies, strategies.rate)[0]
+            child.Method = random.choices(child.Strategy.methods, child.Strategy.rate)[0]
+            child.Genes = strategy_lookup[child.Strategy.strategy][child.Method](parent, donor)
+            get_fitness(child)
+            return child
 
-        if file is not None:
-            first_molecule = Molecule.load(file)
+        
+        print(get_child([first_molecule], 0).Genes)
 
-            def create_candidate():
-                candidate_molecule = mutate(first_molecule.copy())
-                return Chromosome(candidate_molecule, get_fitness(candidate_molecule), Strategies.Create)
-
-        else:            
-            def create_candidate():
-                return random_molecule(atoms, basis, settings, rand_range, dist_unit)
         
         def fn_display(candidate):
             display(candidate, start_time)

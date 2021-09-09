@@ -37,14 +37,14 @@ class Molecule:
         return string
     
     def save(self, document:str=None, directory:str='data') -> None:
-        document = document if document is not None else self.label if self.label is not None else self.__hash__()
+        document = document if document is not None else self.label if self.label is not None else str(self.__hash__())
         directory += '/'
         if not os.path.exists(directory):
             os.mkdir(directory)
         open(f'{directory}/{document}.inp', 'w').write(str(self))
 
     def get_value(self, wanted:list, document=None, directory:str='data', wait:bool=True, keep_output:bool=True) -> None:
-        document = document if document is not None else self.label if self.label is not None else self.__hash__()
+        document = document if document is not None else self.label if self.label is not None else str(self.__hash__())
         directory += '/'
         input_address = directory + document
         deldoc = False
@@ -112,22 +112,26 @@ class Molecule:
 
 def swap_mutate(molecule) -> Molecule:
     new_molecule = molecule.copy()
-    index0 = random.choice(range(1, len(new_molecule.geometry)))
-    index1 = random.choice(range(2, len(new_molecule.geometry[index0]), 2))
-    if index1 == 0:
-        index2 = random.choice(range(1, len(new_molecule.geometry)))
-        index3 = 0
-    elif index1 == 2:
-        index2 = random.choice(range(1, len(new_molecule.geometry)))
-        index3 = 2
-    else:
-        index2 = random.choice(range(3, len(new_molecule.geometry)))
-        index3 = random.choice(range(4, len(new_molecule.geometry[index0]), 2))
+    index0, index1, index2, index3 = 0, 0, 0, 0
+    while (index0, index1) == (index2, index3):
+        index0, index1, index2, index3 = _get_swap_indexes(new_molecule)
     new_molecule.geometry[index0][index1], new_molecule.geometry[index2][index3] =\
     new_molecule.geometry[index2][index3], new_molecule.geometry[index0][index1]
     new_molecule.output = None
     new_molecule.output_values = None
     return new_molecule
+
+
+def _get_swap_indexes(new_molecule):
+    index0 = random.choice(range(2, len(new_molecule.geometry)))
+    index1 = random.choice(range(2, len(new_molecule.geometry[index0]), 2))
+    if index1 == 2:
+        index2 = random.choice(range(2, len(new_molecule.geometry)))
+        index3 = 2
+    else:
+        index2 = random.choice(range(3, len(new_molecule.geometry)))
+        index3 = random.choice(range(4, len(new_molecule.geometry[index0]), 2))
+    return index0, index1, index2, index3
 
 
 def mutate_angles(molecule) -> Molecule:
@@ -143,7 +147,7 @@ def mutate_angles(molecule) -> Molecule:
 
 def mutate_distances(molecule) -> Molecule:
     new_molecule = molecule.copy()
-    index0 = random.choice(range(1, len(new_molecule.geometry)))
+    index0 = random.choice(range(2, len(new_molecule.geometry)))
     if new_molecule.geometry[index0][2].replace('.', '').isdigit():
         new_molecule.geometry[index0][2] = str(random.uniform(0, new_molecule.rand_range))
     else:
@@ -178,7 +182,7 @@ def random_molecule(molecule:str, basis:str, settings:list, rand_range:float,
 def crossover_n(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     child = parent.copy()
     child.label = label
-    n_parameters = random.randint(1, len(child.parameters) - 1) if len(child.parameters > 0) else 0
+    n_parameters = random.randint(1, len(child.parameters) - 1) if len(child.parameters) > 0 else 0
     n_atoms = random.randint(1, len(child.geometry) - 3)
     parameters_indexes = []
     atoms_indexes = []

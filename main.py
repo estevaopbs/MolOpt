@@ -84,11 +84,6 @@ class test_Optimization(unittest.TestCase):
         def fn_display(candidate):
             display(candidate, start_time)
 
-        
-
-        #best = get_best(get_child, create_candidate, max_age, pool_size, max_seconds)
-        #best.save()
-
 
 if __name__ == '__main__':
     unittest.main()

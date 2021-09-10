@@ -1,6 +1,7 @@
 import re
 import random
 import os
+import copy
 
 
 class Molecule:
@@ -68,8 +69,7 @@ class Molecule:
             os.remove(output_address)
     
     def copy(self):
-        return(Molecule(self.basis, self.geometry, self.settings, self.parameters, self.rand_range, self.label,
-                        self.output, self.output_values))
+        return copy.deepcopy(self)
     
     def swap_mutate(self):
         self._receive(swap_mutate(self))

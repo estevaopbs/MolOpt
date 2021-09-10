@@ -24,7 +24,7 @@ class Strategies:
 
 class Create:
     randomize = 0
-    mutate_first = 2
+    mutate_first = 1
     strategy = 0
 
     def __init__(self, methods:list, methods_rate:list):

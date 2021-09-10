@@ -15,7 +15,7 @@ def display(candidate, start_time):
 
 def get_fitness(genes):
     #verificar
-    Fitness =  - float(genes.get_value('total energy'))
+    Fitness =  - float(genes.get_value(['!RHF STATE 1.1 Energy']))
     return Fitness
 
 def get_crossover_rate(candidates):

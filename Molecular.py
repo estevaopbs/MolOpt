@@ -54,7 +54,7 @@ class Molecule:
             deldoc = True
         output_address = f'{directory}{document[:-3]}out'
         if not os.path.isfile(output_address):
-            os.system(f'molpro {directory}{document}')
+            os.system(f'molpro ./{directory}{document}')
         if wait or os.path.isfile(f'{output_address}'):
             while not os.path.isfile(f'{output_address}'):
                 continue

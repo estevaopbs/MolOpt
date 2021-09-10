@@ -23,7 +23,7 @@ def get_crossover_rate(candidates):
 
 
 class test_Optimization(unittest.TestCase):
-    def test_h2co(self):
+    def test_H2O(self):
         molecule = random_molecule('H2O', 'vdz', ['hf'], 2)
         mutate_methods = Mutate([Mutate.swap_mutate, Mutate.mutate_angles, Mutate.mutate_distances], [1, 1, 1])
         crossover_methods = Crossover([Crossover.crossover_n, Crossover.crossover_1, Crossover.crossover_2], [1, 1, 1])

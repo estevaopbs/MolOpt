@@ -50,7 +50,7 @@ class Molecule:
         input_address = directory + document + '.inp'
         deldoc = False
         if not os.path.isfile(input_address):
-            self.save(document, directory[1:])
+            self.save(document, directory[:-1])
             deldoc = True
         output_address = f'{directory}{document[:-3]}out'
         if not os.path.isfile(output_address):

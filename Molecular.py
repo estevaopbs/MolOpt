@@ -47,7 +47,7 @@ class Molecule:
     def get_value(self, wanted:list, document=None, directory:str='data', wait:bool=True, keep_output:bool=True) -> None:
         document = document if document is not None else self.label if self.label is not None else str(abs(self.__hash__()))
         directory += '/'
-        input_address = directory + document
+        input_address = directory + document + '.inp'
         deldoc = False
         if not os.path.isfile(input_address):
             self.save(document, directory)

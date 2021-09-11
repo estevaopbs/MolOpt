@@ -42,7 +42,7 @@ class Molecule:
         directory += '/'
         if not os.path.exists(directory):
             os.mkdir(directory)
-        open(f'{directory}/{document}.inp', 'w').write(str(self))
+        open(f'{directory}{document}.inp', 'w').write(str(self))
 
     def get_value(self, wanted:list, document=None, directory:str='data', wait:bool=True, keep_output:bool=True) -> None:
         document = document if document is not None else self.label if self.label is not None else str(abs(self.__hash__()))
@@ -50,7 +50,7 @@ class Molecule:
         input_address = directory + document + '.inp'
         deldoc = False
         if not os.path.isfile(input_address):
-            self.save(document, directory)
+            self.save(document, directory[1:])
             deldoc = True
         output_address = f'{directory}{document[:-3]}out'
         if not os.path.isfile(output_address):

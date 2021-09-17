@@ -45,25 +45,24 @@ class Molecule:
         with open(f'{directory}{document}.inp', 'w') as file:
             file.write(str(self))
 
-    def get_value(self, wanted:list, document=None, directory:str='data', wait:bool=True, keep_output:bool=True) -> None:
-        document = document if document is not None else self.label if self.label is not None else str(abs(self.__hash__()))
-        directory += '/'
-        input_address = directory + document + '.inp'
+    def get_value(self, wanted:list, document=None, directory:str='data', wait:bool=True, keep_output:bool=True):
+        document = document if document is not None else self.label if self.label is not None else str(self.__hash__())
         deldoc = False
+        input_address = '/{directory}/{document}.inp'
         if not os.path.isfile(input_address):
-            self.save(document, directory[:-1])
+            self.save(document, directory)
             deldoc = True
-        output_address = f'{directory}{document[:-3]}out'
+        output_address = f'/{directory}/{document}.out'
         if not os.path.isfile(output_address):
-            os.system(f'molpro {input_address}')
-        if wait or os.path.isfile(f'{output_address}'):
-            while not os.path.isfile(f'{output_address}'):
+            os.system(f'molpro .{input_address}')
+        if wait or os.path.isfile(output_address):
+            while not os.path.isfile(output_address):
                 continue
-            with open(f'{directory}{document[:-3]}out', 'r') as output:
+            with open(output_address, 'r') as output:
                 outstr = output.read()
             for item in wanted:
                 self.output_values.update({item: re.search(f'{item}.*', outstr)[0]})
-        self.output = f'{document[:-3]}out'
+        self.output = output_address
         if deldoc:
             os.remove(input_address)
         if not keep_output:

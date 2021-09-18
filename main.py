@@ -24,16 +24,16 @@ def get_crossover_rate(candidates):
 
 class test_Optimization(unittest.TestCase):
     def test_H2O(self):
-        molecule = random_molecule('H2SO4', 'vdz', ['hf'], 2)
+        molecule = random_molecule('H2O', 'vdz', ['hf'], 2)
         mutate_methods = Mutate([Mutate.swap_mutate, Mutate.mutate_angles, Mutate.mutate_distances], [1, 1, 1])
         crossover_methods = Crossover([Crossover.crossover_n, Crossover.crossover_1, Crossover.crossover_2], [1, 1, 1])
         create_methods = Create([Create.randomize, Create.mutate_first], [1, 0])
-        strategies = Strategies([create_methods, mutate_methods, crossover_methods], [0, 1, 1])
+        strategies = Strategies([create_methods, mutate_methods, crossover_methods], [0, 1, 0])
         max_age = 20
         pool_size = 20
         #elit_size = 0.1
         #elitism_rate = 0.1
-        max_seconds = 120
+        max_seconds = 240
         generations_tolerance = 30
         crossover_elitism = lambda x: 1
         fitness_param = '!RHF STATE 1.1 Energy'
@@ -112,7 +112,7 @@ class test_Optimization(unittest.TestCase):
                 best = improvement
                 break
         
-        best.Genes.save()
+        best.Genes.save('best')
 
 def _get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, maxSeconds):
     startTime = time.time()

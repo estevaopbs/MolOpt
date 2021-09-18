@@ -88,7 +88,8 @@ class test_Optimization(unittest.TestCase):
         }
         def get_child(candidates, parent_index): # dar um jeito de usar bisect ao inves de deepcopy
             parent = candidates[parent_index]
-            sorted_candidates = (copy.deepcopy(candidates)).sort(reverse=True, key=lambda p: p.Fitness)
+            sorted_candidates = copy.deepcopy(candidates)
+            sorted_candidates.sort(reverse=True, key=lambda p: p.Fitness)
             donor = random.choices(sorted_candidates, [crossover_elitism(n) for n in reversed(range(len(sorted_candidates)))])[0]
             child = Chromosome
             child.Strategy = random.choices(strategies.strategies, strategies.rate)[0]

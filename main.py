@@ -10,13 +10,13 @@ import time
 
 def display(candidate, start_time):
     time_diff = datetime.datetime.now() - start_time
-    print("{0}\t{1}".format(candidate.Fitness), str(time_diff))
+    print("{0}\t{1}".format((candidate.Fitness), str(time_diff)))
 
 
-def get_fitness(genes):
+def get_fitness(genes, fitness_param):
     #verificar
-    Fitness =  - float(genes.get_value(['!RHF STATE 1.1 Energy']))
-    return Fitness
+    genes.get_value(['!RHF STATE 1.1 Energy'])
+    return - float(genes.output_values['!RHF STATE 1.1 Energy'])
 
 def get_crossover_rate(candidates):
     pass
@@ -24,7 +24,7 @@ def get_crossover_rate(candidates):
 
 class test_Optimization(unittest.TestCase):
     def test_H2O(self):
-        molecule = random_molecule('H2O', 'vdz', ['hf'], 2)
+        molecule = random_molecule('H2SO4', 'vdz', ['hf'], 2)
         mutate_methods = Mutate([Mutate.swap_mutate, Mutate.mutate_angles, Mutate.mutate_distances], [1, 1, 1])
         crossover_methods = Crossover([Crossover.crossover_n, Crossover.crossover_1, Crossover.crossover_2], [1, 1, 1])
         create_methods = Create([Create.randomize, Create.mutate_first], [1, 0])
@@ -36,14 +36,15 @@ class test_Optimization(unittest.TestCase):
         max_seconds = 120
         generations_tolerance = 30
         crossover_elitism = lambda x: 1
+        fitness_param = '!RHF STATE 1.1 Energy'
 
         self.optimize(
-            molecule, strategies, max_age, pool_size, max_seconds, generations_tolerance, 
+            molecule, fitness_param, strategies, max_age, pool_size, max_seconds, generations_tolerance, 
             crossover_elitism, True
             )
 
     def optimize(
-        self, first_molecule:Molecule, strategies, max_age:int, pool_size:int, max_seconds:float, time_tolerance:int, 
+        self, first_molecule:Molecule, fitness_param:str, strategies, max_age:int, pool_size:int, max_seconds:float, time_tolerance:int, 
         crossover_elitism:float, mutate_after_crossover:bool=False
         ):
 
@@ -92,19 +93,20 @@ class test_Optimization(unittest.TestCase):
             child.Strategy = random.choices(strategies.strategies, strategies.rate)[0]
             child.Method = random.choices(child.Strategy.methods, child.Strategy.rate)[0]
             child.Genes = strategy_lookup[child.Strategy.strategy][child.Method](parent.Genes, donor.Genes)
-            child.Fitness = get_fitness(child.Genes)
+            child.Fitness = get_fitness(child.Genes, fitness_param)
             return child
 
         def fn_generate_parent():
             parent = Chromosome
             parent.Genes = randomize(first_molecule)
-            parent.Fitness = get_fitness(parent.Genes)
+            parent.Fitness = get_fitness(parent.Genes, fitness_param)
+            return parent
         
-        first_parent = Chromosome(first_molecule, get_fitness(first_molecule), None, None)
+        first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param), None, None)
         usedStrategies = []
         for timedOut, improvement in _get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, max_seconds):
             display(improvement, start_time)
-            f = strategy_lookup[(improvement.Strategy, improvement.Method)]
+            f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)
             if timedOut:
                 best = improvement
@@ -134,7 +136,7 @@ def _get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize,
             yield True, bestParent
         pindex = pindex - 1 if pindex > 0 else lastParentIndex
         parent = parents[pindex]
-        child = new_child(parent, pindex, parents)
+        child = new_child(parents, pindex)
         if parent.Fitness > child.Fitness:
             if maxAge is None:
                 continue

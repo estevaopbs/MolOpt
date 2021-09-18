@@ -48,20 +48,22 @@ class Molecule:
     def get_value(self, wanted:list, document=None, directory:str='data', wait:bool=True, keep_output:bool=True):
         document = document if document is not None else self.label if self.label is not None else str(self.__hash__())
         deldoc = False
-        input_address = '/{directory}/{document}.inp'
+        input_address = f'{directory}/{document}.inp'
         if not os.path.isfile(input_address):
             self.save(document, directory)
             deldoc = True
-        output_address = f'/{directory}/{document}.out'
+        output_address = f'{directory}/{document}.out'
+        #output_address = f'{directory}/aa.out'
         if not os.path.isfile(output_address):
-            os.system(f'molpro .{input_address}')
+            os.system(f'molpro ./{input_address}')
         if wait or os.path.isfile(output_address):
             while not os.path.isfile(output_address):
                 continue
             with open(output_address, 'r') as output:
                 outstr = output.read()
             for item in wanted:
-                self.output_values.update({item: re.search(f'{item}.*', outstr)[0]})
+                self.output_values.update({item: (re.search(f'{item}.*', outstr)[0]).replace(item, '').replace(' ', '')})
+            print(self.output_values)
         self.output = output_address
         if deldoc:
             os.remove(input_address)
@@ -118,26 +120,26 @@ def swap_mutate(molecule) -> Molecule:
     new_molecule.geometry[index0][index1], new_molecule.geometry[index2][index3] =\
     new_molecule.geometry[index2][index3], new_molecule.geometry[index0][index1]
     new_molecule.output = None
-    new_molecule.output_values = None
+    new_molecule.output_values = dict()
     return new_molecule
 
 
 def _get_swap_indexes(new_molecule):
     index0 = random.choice(range(2, len(new_molecule.geometry)))
-    index1 = random.choice(range(2, len(new_molecule.geometry[index0]), 2))
+    index1 = random.choice(range(2, len(new_molecule.geometry[index0]) + 1, 2))
     if index1 == 2:
         index2 = random.choice(range(2, len(new_molecule.geometry)))
         index3 = 2
     else:
         index2 = random.choice(range(3, len(new_molecule.geometry)))
-        index3 = random.choice(range(4, len(new_molecule.geometry[index0]), 2))
+        index3 = random.choice(range(4, len(new_molecule.geometry[index2]) + 1, 2))
     return index0, index1, index2, index3
 
 
 def mutate_angles(molecule) -> Molecule:
     new_molecule = molecule.copy()
     index0 = random.choice(range(3, len(new_molecule.geometry)))
-    index1 = random.choice(range(4, len(new_molecule.geometry[index0]), 2))
+    index1 = random.choice(range(4, len(new_molecule.geometry[index0]) + 1, 2))
     if new_molecule.geometry[index0][index1].replace('.', '').isdigit():
         new_molecule.geometry[index0][index1] = str(random.uniform(0, 180))
     else:
@@ -153,7 +155,7 @@ def mutate_distances(molecule) -> Molecule:
     else:
         new_molecule.parameters[new_molecule.geometry[index0][2]] = str(random.uniform(0, new_molecule.rand_range))
     new_molecule.output = None
-    new_molecule.output_values = None
+    new_molecule.output_values = dict()
     return new_molecule
 
 
@@ -173,9 +175,10 @@ def random_molecule(molecule:str, basis:str, settings:list, rand_range:float,
             if len(geometry) > 2:
                 geometry[-1].append('1')
                 geometry[-1].append(str(random.uniform(0, rand_range)))
-                for n in range(2, (len(geometry) - 1)):
-                    geometry[-1].append(str(n))
-                    geometry[-1].append(str(random.uniform(0, 180)))
+                if len(geometry) > 3:
+                    for n in range(2, (len(geometry) - 1)):
+                        geometry[-1].append(str(n))
+                        geometry[-1].append(str(random.uniform(0, 180)))
     return Molecule(basis, geometry, settings, rand_range=rand_range, label=label)
 
 
@@ -187,20 +190,20 @@ def crossover_n(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     parameters_indexes = []
     atoms_indexes = []
     for _ in range(n_parameters):
-        index = random.randint(0, len(child.parameters))
+        index = random.randint(0, len(child.parameters) - 1)
         while index in parameters_indexes:
-            index = random.randint(0, len(child.parameters))
+            index = random.randint(0, len(child.parameters) - 1)
         parameters_indexes.append(index)
         key = list(child.parameters.keys())[index]
         child.parameters[key] = donor.parameters[key]
     for _ in range(n_atoms):
-        index = random.randint(2, len(child.geometry))
+        index = random.randint(2, len(child.geometry) - 1)
         while index in atoms_indexes:
-            index = random.randint(2, len(child.geometry))
+            index = random.randint(2, len(child.geometry) - 1)
         atoms_indexes.append(index)
         child.geometry[index] = donor.geometry[index]
     child.output = None
-    child.output_values = None
+    child.output_values = dict()
     return child
 
 
@@ -219,12 +222,13 @@ def randomize(molecule:Molecule, label:str=None) -> Molecule:
             else:
                 new_molecule.parameters[new_molecule.geometry[row_index][angle_index]] = str(random.uniform(0, 180))
     new_molecule.output = None
-    new_molecule.output_values = None
+    new_molecule.output_values = dict()
     return new_molecule
 
 
 def crossover_1(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     child = parent.copy()
+    keys = list(child.parameters.keys())
     child.label = label
     index = random.choice(range(2, len(child.geometry)))
     if random.choice([True, False]):
@@ -234,41 +238,51 @@ def crossover_1(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     if len(child.parameters) > 0:
         index = random.choice(range(0, len(child.parameters)))
         if random.choice([True, False]):
-            child.parameters[index:] = donor.parameters[index:]
+            for parameter in keys[index:]:
+                child.parameters[parameter] = donor.parameters[parameter]
+            #child.parameters[index:] = donor.parameters[index:]
         else:
-            child.parameters[:index] = donor.parameters[:index]
+            for parameter in keys[:index]:
+                child.parameters[parameter] = donor.parameters[parameter]
+            #child.parameters[:index] = donor.parameters[:index]
     child.output = None
-    child.output_values = None
+    child.output_values = dict()
     return child
 
 
+#consertar
 def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
-    if len(parent.geometry < 5):
+    if len(parent.geometry) < 5:
         raise Exception('Molecules does not has enough atoms for crossover_2.')
     child = parent.copy()
     child.label = label
     child.output = None
-    child.output_values = None
+    child.output_values = dict()
     index1 = random.choice(range(2, len(child.geometry)))
     index2 = random.choice(range(2, len(child.geometry)))
-    while index1 == index2 or ((index1 == 2 and index2 == len(child.geometry)) or (index1 == len(child.geometry) and index2 == 2)):
+    while index1 == index2 or ((index1 == 2 and index2 == len(child.geometry) - 1) or (index1 == len(child.geometry) - 1 and index2 == 2)):
         index1 = random.choice(range(2, len(child.geometry)))
         index2 = random.choice(range(2, len(child.geometry)))
     if index1 > index2:
         index1, index2 = index2, index1
     if random.choice([True, False]):
         child.geometry[:index1] = donor.geometry[:index1]
-        child.geometry[index2:] = donor.geometry[:index2]
+        child.geometry[index2:] = donor.geometry[index2:]
     else:
         child.geometry[index1:index2] = donor.geometry[index1:index2]
     if len(child.parameters) > 0:
+        keys = list(child.parameters.keys())
         index1 = random.choice(range(0, len(child.parameters)))
         index2 = random.choice(range(0, len(child.parameters)))
         if index1 > index2:
             index1, index2 = index2, index1
         if random.choice([True, False]):
-            child.parameters[:index1] = donor.parameters[:index1]
-            child.parameters[index2:] = donor.parameters[index2:]
+            for parameter in keys[:index1] + keys[index2:]:
+                child.parameters[parameter] = donor.parameters[parameter]
+            #child.parameters[:index1] = donor.parameters[:index1]
+            #child.parameters[index2:] = donor.parameters[index2:]
         else:
-            child.parameters[index1:index2] = donor.parameters[index1:index2]
+            for parameter in keys[index1:index2]:
+                child.parameters[parameter] = donor.parameters[parameter]
+            #child.parameters[index1:index2] = donor.parameters[index1:index2]
     return child

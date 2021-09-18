@@ -15,8 +15,8 @@ def display(candidate, start_time):
 
 def get_fitness(genes, fitness_param):
     #verificar
-    genes.get_value(['!RHF STATE 1.1 Energy'])
-    return - float(genes.output_values['!RHF STATE 1.1 Energy'])
+    genes.get_value([fitness_param])
+    return - float(genes.output_values[fitness_param])
 
 def get_crossover_rate(candidates):
     pass
@@ -133,6 +133,7 @@ def _get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize,
     pindex = 1
     while True:
         if maxSeconds is not None and time.time() - startTime > maxSeconds:
+            print(historicalFitnesses.sort(reverse=True))
             yield True, bestParent
         pindex = pindex - 1 if pindex > 0 else lastParentIndex
         parent = parents[pindex]

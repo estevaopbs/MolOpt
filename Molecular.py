@@ -95,7 +95,7 @@ class Molecule:
     @staticmethod
     def load(file:str, rand_range=None, label:str=None, output=None, output_values=None):
         inpstr = re.search('\*\*\*,.*---', open(file, 'r').read(), flags=re.S)[0]
-        basis = re.search('basis=.*', inpstr)[0].split('=')[1]
+        basis = re.search('basis=.*', inpstr, flags=re.S)[0].split('\n\n')[0].replace('basis=', '')
         splitinpstr = inpstr.split('\n\n')
         leninspstr = len(splitinpstr)
         if leninspstr == 6:
@@ -106,8 +106,9 @@ class Molecule:
             settings_location = 3
         else:
             raise Exception('Invalid input format.')
-        geometry = [re.split(' *, *', row) for row in re.search('{.*}', inpstr, flags=re.S)[0].split('\n')[0:-1]]
-        geometry[0][0]=geometry[0][0][1:].replace('{', '').replace(' ', '')
+        geometry = [re.split(' *, *', row) for row in re.search('geometry=.*', inpstr, flags=re.S)[0].split('\n\n')[0].\
+                    replace('geometry=', '').replace('{', '').replace('}', '').split('\n')]
+        geometry.remove([''])
         settings = splitinpstr[settings_location].split('\n')
         return Molecule(basis, geometry, settings, parameters, rand_range, label, output, output_values)
     
@@ -176,7 +177,7 @@ def random_molecule(molecule:str, basis:str, settings:list, rand_range:float,
                 geometry[-1].append('1')
                 geometry[-1].append(str(random.uniform(0, rand_range)))
                 if len(geometry) > 3:
-                    for n in range(2, (len(geometry) - 1)):
+                    for n in (2, 3):
                         geometry[-1].append(str(n))
                         geometry[-1].append(str(random.uniform(0, 180)))
     return Molecule(basis, geometry, settings, rand_range=rand_range, label=label)

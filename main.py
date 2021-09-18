@@ -23,8 +23,8 @@ def get_crossover_rate(candidates):
 
 
 class test_Optimization(unittest.TestCase):
-    def test_H2O(self):
-        molecule = random_molecule('H2O', 'vdz', ['hf'], 2)
+    def test_H2SO4(self):
+        molecule = random_molecule('H2SO4', 'vdz', ['hf'], 5)
         mutate_methods = Mutate([Mutate.swap_mutate, Mutate.mutate_angles, Mutate.mutate_distances], [1, 1, 1])
         crossover_methods = Crossover([Crossover.crossover_n, Crossover.crossover_1, Crossover.crossover_2], [1, 1, 1])
         create_methods = Create([Create.randomize, Create.mutate_first], [1, 0])
@@ -86,9 +86,10 @@ class test_Optimization(unittest.TestCase):
             Strategies.Mutate: mutate_lookup,
             Strategies.Crossover: crossover_lookup
         }
-        def get_child(candidates, parent_index): # candidates precisa estar organizado com fitness decrescente
+        def get_child(candidates, parent_index): # dar um jeito de usar bisect ao inves de deepcopy
             parent = candidates[parent_index]
-            donor = random.choices(candidates, [crossover_elitism(n) for n in reversed(range(len(candidates)))])[0]
+            sorted_candidates = (copy.deepcopy(candidates)).sort(reverse=True, key=lambda p: p.Fitness)
+            donor = random.choices(sorted_candidates, [crossover_elitism(n) for n in reversed(range(len(sorted_candidates)))])[0]
             child = Chromosome
             child.Strategy = random.choices(strategies.strategies, strategies.rate)[0]
             child.Method = random.choices(child.Strategy.methods, child.Strategy.rate)[0]
@@ -134,6 +135,7 @@ def _get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize,
     while True:
         if maxSeconds is not None and time.time() - startTime > maxSeconds:
             print(historicalFitnesses.sort(reverse=True))
+            print(bestParent.Fitness)
             yield True, bestParent
         pindex = pindex - 1 if pindex > 0 else lastParentIndex
         parent = parents[pindex]

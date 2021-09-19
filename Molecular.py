@@ -63,7 +63,6 @@ class Molecule:
                 outstr = output.read()
             for item in wanted:
                 self.output_values.update({item: (re.search(f'{item}.*', outstr)[0]).replace(item, '').replace(' ', '')})
-            print(self.output_values)
         self.output = output_address
         if deldoc:
             os.remove(input_address)

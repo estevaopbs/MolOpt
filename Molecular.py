@@ -92,7 +92,7 @@ class Molecule:
         self._receive(mutate_angles(self))
 
     @staticmethod
-    def load(file:str, rand_range=None, label:str=None, output=None, output_values=None):
+    def load(file:str, rand_range=None, label:str=None, output=None, output_values=dict()):
         inpstr = re.search('\*\*\*,.*---', open(file, 'r').read(), flags=re.S)[0]
         basis = re.search('basis=.*', inpstr, flags=re.S)[0].split('\n\n')[0].replace('basis=', '')
         splitinpstr = inpstr.split('\n\n')
@@ -185,7 +185,10 @@ def random_molecule(molecule:str, basis:str, settings:list, rand_range:float,
 def crossover_n(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     child = parent.copy()
     child.label = label
-    n_parameters = random.randint(1, len(child.parameters) - 1) if len(child.parameters) > 0 else 0
+    if len(child.parameters) > 0:
+        n_parameters = random.randint(1, len(child.parameters) - 1)
+    else:
+        n_parameters = 0
     n_atoms = random.randint(1, len(child.geometry) - 3)
     parameters_indexes = []
     atoms_indexes = []
@@ -240,11 +243,9 @@ def crossover_1(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
         if random.choice([True, False]):
             for parameter in keys[index:]:
                 child.parameters[parameter] = donor.parameters[parameter]
-            #child.parameters[index:] = donor.parameters[index:]
         else:
             for parameter in keys[:index]:
                 child.parameters[parameter] = donor.parameters[parameter]
-            #child.parameters[:index] = donor.parameters[:index]
     child.output = None
     child.output_values = dict()
     return child
@@ -279,10 +280,7 @@ def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
         if random.choice([True, False]):
             for parameter in keys[:index1] + keys[index2:]:
                 child.parameters[parameter] = donor.parameters[parameter]
-            #child.parameters[:index1] = donor.parameters[:index1]
-            #child.parameters[index2:] = donor.parameters[index2:]
         else:
             for parameter in keys[index1:index2]:
                 child.parameters[parameter] = donor.parameters[parameter]
-            #child.parameters[index1:index2] = donor.parameters[index1:index2]
     return child

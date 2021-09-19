@@ -2,10 +2,7 @@ from genetic import *
 from Molecular import *
 import unittest
 import datetime
-from bisect import bisect_left
-from math import exp
 import random
-import time
 
 
 def display(candidate, start_time):
@@ -20,13 +17,13 @@ def get_fitness(genes, fitness_param):
 
 
 class test_Optimization(unittest.TestCase):
-    def test_H2SO4(self):
-        molecule = random_molecule('H2SO4', 'vdz', ['hf'], 5)
+    def test_10Nb(self):
+        molecule = Molecule.load('nb_n_molpro.inp', 5)
         mutate_methods = Mutate([Mutate.swap_mutate, Mutate.mutate_angles, Mutate.mutate_distances], [1, 1, 1])
         crossover_methods = Crossover([Crossover.crossover_n, Crossover.crossover_1, Crossover.crossover_2], [1, 1, 1])
         create_methods = Create([Create.randomize, Create.mutate_first], [1, 0])
         strategies = Strategies([create_methods, mutate_methods, crossover_methods], [0, 1, 1])
-        max_age = 50
+        max_age = 5
         pool_size = 20
         #elit_size = 0.1
         #elitism_rate = 0.1
@@ -103,7 +100,7 @@ class test_Optimization(unittest.TestCase):
         
         first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param), None, None)
         usedStrategies = []
-        for timedOut, improvement in _get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, max_seconds):
+        for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, max_seconds):
             display(improvement, start_time)
             f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)
@@ -112,57 +109,6 @@ class test_Optimization(unittest.TestCase):
                 break
         
         best.Genes.save('best')
-
-def _get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, maxSeconds):
-    startTime = time.time()
-    bestParent = first_parent
-    yield maxSeconds is not None and time.time() - startTime > maxSeconds, bestParent
-    parents = [bestParent]
-    historicalFitnesses = [bestParent.Fitness]
-    for _ in range(poolSize - 1):
-        parent = generate_parent()
-        if maxSeconds is not None and time.time() - startTime > maxSeconds:
-            yield True, parent
-        if parent.Fitness > bestParent.Fitness:
-            yield False, parent
-            bestParent = parent
-            historicalFitnesses.append(parent.Fitness)
-        parents.append(parent)
-    lastParentIndex = poolSize - 1
-    pindex = 1
-    while True:
-        if maxSeconds is not None and time.time() - startTime > maxSeconds:
-            print(historicalFitnesses.sort(reverse=True))
-            print(bestParent.Fitness)
-            yield True, bestParent
-        pindex = pindex - 1 if pindex > 0 else lastParentIndex
-        parent = parents[pindex]
-        child = new_child(parents, pindex)
-        if parent.Fitness > child.Fitness:
-            if maxAge is None:
-                continue
-            parent.Age += 1
-            if maxAge > parent.Age:
-                continue
-            index = bisect_left(historicalFitnesses, child.Fitness, 0, len(historicalFitnesses))
-            difference = len(historicalFitnesses) - index
-            proportionSimilar = difference / len(historicalFitnesses)
-            if random.random() < exp(-proportionSimilar):
-                parents[pindex] = child
-                continue
-            parents[pindex] = bestParent
-            parent.Age = 0
-            continue
-        if not child.Fitness > parent.Fitness:
-            child.Age = parent.Age + 1
-            parents[pindex] = child
-            continue
-        parents[pindex] = child
-        parent.Age = 0
-        if child.Fitness > bestParent.Fitness:
-            yield False, child
-            bestParent = child
-            historicalFitnesses.append(child.Fitness)
 
 
 if __name__ == '__main__':

@@ -30,7 +30,7 @@ class test_Optimization(unittest.TestCase):
         max_seconds = 240
         generations_tolerance = 30
         crossover_elitism = lambda x: 1
-        fitness_param = '!RHF STATE 1.1 Energy'
+        fitness_param = '!RKS STATE 1.1 Energy'
 
         self.optimize(
             molecule, fitness_param, strategies, max_age, pool_size, max_seconds, generations_tolerance, 
@@ -105,10 +105,8 @@ class test_Optimization(unittest.TestCase):
             f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)
             if timedOut:
-                best = improvement
+                improvement.Fitness.save('best')
                 break
-        
-        best.Genes.save('best')
 
 
 if __name__ == '__main__':

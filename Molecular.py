@@ -93,7 +93,8 @@ class Molecule:
 
     @staticmethod
     def load(file:str, rand_range=None, label:str=None, output=None, output_values=dict()):
-        inpstr = re.search('\*\*\*,.*---', open(file, 'r').read(), flags=re.S)[0]
+        with open(file, 'r') as data:
+            inpstr = re.search('\*\*\*,.*---', data.read(), flags=re.S)[0]
         basis = re.search('basis=.*', inpstr, flags=re.S)[0].split('\n\n')[0].replace('basis=', '')
         splitinpstr = inpstr.split('\n\n')
         leninspstr = len(splitinpstr)

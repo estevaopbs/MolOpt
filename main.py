@@ -27,13 +27,13 @@ class test_Optimization(unittest.TestCase):
         pool_size = 20
         #elit_size = 0.1
         #elitism_rate = 0.1
-        max_seconds = 240
-        generations_tolerance = 30
+        max_seconds = 100800
+        time_tolerance = 30
         crossover_elitism = lambda x: 1
         fitness_param = '!RKS STATE 1.1 Energy'
 
         self.optimize(
-            molecule, fitness_param, strategies, max_age, pool_size, max_seconds, generations_tolerance, 
+            molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance, 
             crossover_elitism, True
             )
 
@@ -105,7 +105,7 @@ class test_Optimization(unittest.TestCase):
             f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)
             if timedOut:
-                improvement.Fitness.save('best')
+                improvement.Fitness.save(f'{improvement.Fitness.__hash__}_best')
                 break
 
 

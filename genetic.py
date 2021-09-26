@@ -268,7 +268,8 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 parent = candidates[parent_index]
                 sorted_candidates = copy.copy(candidates)
                 sorted_candidates.sort(reverse=True, key=lambda p: p.Fitness)
-                donor = random.choices(sorted_candidates, [crossover_elitism(n) for n in reversed(range(len(sorted_candidates)))])[0]
+                donor = random.choices(sorted_candidates, 
+                [crossover_elitism(n) for n in reversed(range(len(sorted_candidates)))])[0]
                 child = Chromosome()
                 child.Strategy = random.choices(strategies.strategies, strategies.rate)[0]
                 child.Method = random.choices(child.Strategy.methods, child.Strategy.rate)[0]
@@ -285,7 +286,8 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         while True:
             try:
                 parent = Chromosome()
-                parent.Genes = create_lookup[random.choices(create_methods.methods, create_methods.rate)](first_molecule)
+                parent.Genes = create_lookup[random.choices(create_methods.methods, create_methods.rate)]\
+                    (first_molecule)
                 parent.Fitness = get_fitness(parent.Genes, fitness_param, threads_per_calculation)
                 break
             except:
@@ -295,9 +297,11 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         return parent
     
     usedStrategies = []
-    first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, threads_per_calculation), None, None)
+    first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, threads_per_calculation), 
+    None, None)
     if not parallelism:
-        for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, max_seconds, time_tolerance):
+        for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
+        max_seconds, time_tolerance):
             display(improvement, start_time)
             f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)

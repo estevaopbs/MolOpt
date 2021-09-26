@@ -16,7 +16,8 @@ def test_10Nb():
     crossover_elitism = lambda x: 1
     fitness_param = '!RKS STATE 1.1 Energy'
 
-    optimize(molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance, crossover_elitism, True)
+    optimize(molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance, crossover_elitism,
+    True)
 
 
 if __name__ == '__main__':

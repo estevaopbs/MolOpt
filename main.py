@@ -8,16 +8,17 @@ def test_10Nb():
     create_methods = Create([Create.randomize, Create.mutate_first], [1, 1])
     strategies = Strategies([create_methods, mutate_methods, crossover_methods], [0, 1, 1])
     max_age = 5
-    pool_size = 20
-    #elit_size = 0.1
-    #elitism_rate = 0.1
+    pool_size = 3
+    elit_size = 1
+    elitism_rate = [2]
     max_seconds = 100800
     time_tolerance = 30
     crossover_elitism = lambda x: 1
     fitness_param = '!RKS STATE 1.1 Energy'
 
     optimize(molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance, crossover_elitism,
-    True)
+    mutate_after_crossover=True, parallelism=True, elit_size=elit_size, elitism_rate=elitism_rate,
+    generations_tolerance=10, threads_per_calculation=1, max_gens=20)
 
 
 if __name__ == '__main__':

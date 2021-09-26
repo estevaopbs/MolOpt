@@ -218,10 +218,10 @@ def get_improvement_p(new_child, first_parent, generate_parent, maxAge, poolSize
             parents.sort(key=lambda p: p.Fitness, reverse=True)
                     
 
-def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int, pool_size:int, max_seconds:float, 
-    time_tolerance:int, crossover_elitism:float, mutate_after_crossover:bool=False, parallelism:bool=False, 
-    elit_size:int=0, elitism_rate:list=None, generations_tolerance:int=None, threads_per_calculation:int=1, 
-    max_gens=None):
+def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int=None, pool_size:int=1, 
+    max_seconds:float=None, time_tolerance:int=None, crossover_elitism:function=lambda x: 1, 
+    mutate_after_crossover:bool=False, parallelism:bool=False, elit_size:int=0, elitism_rate:list=None, 
+    generations_tolerance:int=None, threads_per_calculation:int=1, max_gens=None):
 
     start_time= time.time()
 
@@ -306,7 +306,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)
             if timedOut :
-                return improvement
+                break
     else:
         for timedOut, improvement in get_improvement_p(get_child, first_parent, fn_generate_parent, max_age, pool_size,
         max_seconds, elit_size, elitism_rate, max_gens, generations_tolerance, time_tolerance):
@@ -314,4 +314,5 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)
             if timedOut :
-                return improvement
+                break
+    return improvement.Genes

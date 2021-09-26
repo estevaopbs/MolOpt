@@ -45,7 +45,7 @@ class Molecule:
         with open(f'{directory}{document}.inp', 'w') as file:
             file.write(str(self))
 
-    def get_value(self, wanted:list, document=None, directory:str='data', wait:bool=True, keep_output:bool=True):
+    def get_value(self, wanted:list, document=None, directory:str='data', keep_output:bool=False, nthreads=1) -> dict:
         document = document if document is not None else self.label if self.label is not None else str(self.__hash__())
         deldoc = False
         input_address = f'{directory}/{document}.inp'
@@ -53,21 +53,19 @@ class Molecule:
             self.save(document, directory)
             deldoc = True
         output_address = f'{directory}/{document}.out'
-        #output_address = f'{directory}/aa.out'
         if not os.path.isfile(output_address):
-            os.system(f'molpro ./{input_address}')
-        if wait or os.path.isfile(output_address):
-            while not os.path.isfile(output_address):
-                continue
-            with open(output_address, 'r') as output:
-                outstr = output.read()
-            for item in wanted:
-                self.output_values.update({item: (re.search(f'{item}.*', outstr)[0]).replace(item, '').replace(' ', '')})
+            os.system(f'molpro -n {nthreads} ./{input_address}')
+        with open(output_address, 'r') as output:
+            outstr = output.read()
+        for item in wanted:
+            self.output_values.update({item: (re.search(f'{item}.*', outstr)[0]).replace(item, '').replace(' ', '')})
         self.output = output_address
         if deldoc:
             os.remove(input_address)
         if not keep_output:
+            os.remove(output_address[:-3] + '.xml')
             os.remove(output_address)
+        return self.output_values
     
     def copy(self):
         return copy.deepcopy(self)
@@ -113,7 +111,7 @@ class Molecule:
         return Molecule(basis, geometry, settings, parameters, rand_range, label, output, output_values)
     
 
-def swap_mutate(molecule) -> Molecule:
+def swap_mutate(molecule, times:int=1) -> Molecule:
     new_molecule = molecule.copy()
     index0, index1, index2, index3 = 0, 0, 0, 0
     while (index0, index1) == (index2, index3):
@@ -137,18 +135,18 @@ def _get_swap_indexes(new_molecule):
     return index0, index1, index2, index3
 
 
-def mutate_angles(molecule) -> Molecule:
+def mutate_angles(molecule, times:int=1) -> Molecule:
     new_molecule = molecule.copy()
     index0 = random.choice(range(3, len(new_molecule.geometry)))
     index1 = random.choice(range(4, len(new_molecule.geometry[index0]) + 1, 2))
     if new_molecule.geometry[index0][index1].replace('.', '').isdigit():
-        new_molecule.geometry[index0][index1] = str(random.uniform(0, 180))
+        new_molecule.geometry[index0][index1] = str(random.uniform(0, 360))
     else:
-        new_molecule.parameters[new_molecule.geometry[index0][index1]] = str(random.uniform(0, 180))
+        new_molecule.parameters[new_molecule.geometry[index0][index1]] = str(random.uniform(0, 360))
     return new_molecule
 
 
-def mutate_distances(molecule) -> Molecule:
+def mutate_distances(molecule, times:int=1) -> Molecule:
     new_molecule = molecule.copy()
     index0 = random.choice(range(2, len(new_molecule.geometry)))
     if new_molecule.geometry[index0][2].replace('.', '').isdigit():
@@ -179,7 +177,7 @@ def random_molecule(molecule:str, basis:str, settings:list, rand_range:float,
                 if len(geometry) > 3:
                     for n in (2, 3):
                         geometry[-1].append(str(n))
-                        geometry[-1].append(str(random.uniform(0, 180)))
+                        geometry[-1].append(str(random.uniform(0, 360)))
     return Molecule(basis, geometry, settings, rand_range=rand_range, label=label)
 
 
@@ -222,9 +220,9 @@ def randomize(molecule:Molecule, label:str=None) -> Molecule:
                 str(random.uniform(0, new_molecule.rand_range))
         for angle_index in range(4, len(new_molecule.geometry[row_index]), 2):
             if new_molecule.geometry[row_index][angle_index].replace('.', '').isdigit():
-                new_molecule.geometry[row_index][angle_index] = str(random.uniform(0, 180))
+                new_molecule.geometry[row_index][angle_index] = str(random.uniform(0, 360))
             else:
-                new_molecule.parameters[new_molecule.geometry[row_index][angle_index]] = str(random.uniform(0, 180))
+                new_molecule.parameters[new_molecule.geometry[row_index][angle_index]] = str(random.uniform(0, 360))
     new_molecule.output = None
     new_molecule.output_values = dict()
     return new_molecule

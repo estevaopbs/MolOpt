@@ -141,6 +141,8 @@ def get_improvement_p(new_child, first_parent, generate_parent, maxAge, poolSize
     for _ in range(poolSize - 1):
         processes.append(mp.Process(target=generate_parent, args=(queue,)))
     for process in processes:
+        process.start()
+    for process in processes:
         process.join()
     for _ in range(poolSize - 1):
         parents.append(queue.get())
@@ -178,6 +180,8 @@ def get_improvement_p(new_child, first_parent, generate_parent, maxAge, poolSize
         else:
             for pindex in range(len(parents)):
                 processes.append(mp.Process(target=new_child, args=(parent, pindex, queue, pindex)))
+        for process in processes:
+            process.start()
         for process in processes:
             process.join()
         for _ in range(poolSize):
@@ -219,9 +223,9 @@ def get_improvement_p(new_child, first_parent, generate_parent, maxAge, poolSize
                     
 
 def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int=None, pool_size:int=1, 
-    max_seconds:float=None, time_tolerance:int=None, crossover_elitism:function=lambda x: 1, 
+    max_seconds:float=None, time_tolerance:int=None, crossover_elitism=lambda x: 1, 
     mutate_after_crossover:bool=False, parallelism:bool=False, elit_size:int=0, elitism_rate:list=None, 
-    generations_tolerance:int=None, threads_per_calculation:int=1, max_gens=None):
+    generations_tolerance:int=None, threads_per_calculation:int=1, max_gens=None, mutation_rate=1):
 
     start_time= time.time()
 
@@ -234,9 +238,9 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             crossover_methods = strategy
 
     mutate_lookup = {
-        Mutate.swap_mutate: lambda p, d=0: swap_mutate(p),
-        Mutate.mutate_angles: lambda p, d=0: mutate_angles(p),
-        Mutate.mutate_distances: lambda p, d=0: mutate_distances(p)
+        Mutate.swap_mutate: lambda p, d=0: swap_mutate(p, mutation_rate),
+        Mutate.mutate_angles: lambda p, d=0: mutate_angles(p, mutation_rate),
+        Mutate.mutate_distances: lambda p, d=0: mutate_distances(p, mutation_rate)
     }
     mutate = lambda p: mutate_lookup[random.choices(mutate_methods.methods, mutate_methods.rate)[0]](p)
     if not mutate_after_crossover:
@@ -268,8 +272,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 parent = candidates[parent_index]
                 sorted_candidates = copy.copy(candidates)
                 sorted_candidates.sort(reverse=True, key=lambda p: p.Fitness)
-                donor = random.choices(sorted_candidates, 
-                [crossover_elitism(n) for n in reversed(range(len(sorted_candidates)))])[0]
+                donor = random.choices(sorted_candidates, [crossover_elitism(n) for n in reversed(range(len(sorted_candidates)))])[0]
                 child = Chromosome()
                 child.Strategy = random.choices(strategies.strategies, strategies.rate)[0]
                 child.Method = random.choices(child.Strategy.methods, child.Strategy.rate)[0]

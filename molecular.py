@@ -64,7 +64,7 @@ class Molecule:
         if deldoc:
             os.remove(input_address)
         if not keep_output:
-            os.remove(output_address[:-3] + '.xml')
+            os.remove(output_address[:-3] + 'xml')
             os.remove(output_address)
         return self.output_values
     

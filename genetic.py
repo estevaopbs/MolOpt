@@ -272,7 +272,8 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 parent = candidates[parent_index]
                 sorted_candidates = copy.copy(candidates)
                 sorted_candidates.sort(reverse=True, key=lambda p: p.Fitness)
-                donor = random.choices(sorted_candidates, [crossover_elitism(n) for n in reversed(range(len(sorted_candidates)))])[0]
+                donor = random.choices(sorted_candidates, [crossover_elitism(n) for n in\
+                    reversed(range(len(sorted_candidates)))])[0]
                 child = Chromosome()
                 child.Strategy = random.choices(strategies.strategies, strategies.rate)[0]
                 child.Method = random.choices(child.Strategy.methods, child.Strategy.rate)[0]
@@ -289,7 +290,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         while True:
             try:
                 parent = Chromosome()
-                parent.Genes = create_lookup[random.choices(create_methods.methods, create_methods.rate)]\
+                parent.Genes = create_lookup[random.choices(create_methods.methods, create_methods.rate)[0]]\
                     (first_molecule)
                 parent.Fitness = get_fitness(parent.Genes, fitness_param, threads_per_calculation)
                 break

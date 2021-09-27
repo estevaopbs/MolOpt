@@ -16,7 +16,7 @@ def test_Al10():
 
     result = optimize(molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance, 
     crossover_elitism, mutate_after_crossover=True, parallelism=False, threads_per_calculation=3, mutation_rate=2)
-    result.Genes.save()
+    result.Genes.save('best_Al10.inp')
     return result.Genes
 
 
@@ -36,7 +36,7 @@ def test_Al10_parallelism():  # não funciona e não sei porque
     result = optimize(molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance,
     crossover_elitism, mutate_after_crossover=True, parallelism=True, elit_size=1, elitism_rate=[2],
     generations_tolerance=20, threads_per_calculation=1, max_gens=500, mutation_rate=2)
-    result.save()
+    result.save('best_Al10_p.inp')
     return result
 
 

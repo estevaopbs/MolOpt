@@ -281,6 +281,9 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 child.Fitness = get_fitness(child.Genes, fitness_param, threads_per_calculation)
                 break
             except:
+                os.remove(f'data/{child.Genes.__hash__()}.inp')
+                os.remove(f'data/{child.Genes.__hash__()}.out')
+                os.remove(f'data/{child.Genes.__hash__()}.xml')
                 continue
         if queue is not None:
             queue.put({str(child_index): child})
@@ -295,6 +298,9 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 parent.Fitness = get_fitness(parent.Genes, fitness_param, threads_per_calculation)
                 break
             except:
+                os.remove(f'data/{parent.Genes.__hash__()}.inp')
+                os.remove(f'data/{parent.Genes.__hash__()}.out')
+                os.remove(f'data/{parent.Genes.__hash__()}.xml')
                 continue
         if queue is not None:
             queue.put(parent)

@@ -54,16 +54,11 @@ class Molecule:
             if not os.path.exists(f'{directory}/{document}.inp'):
                 self.save(document, directory)
                 deldoc = True
-            os.system(f'molpro -n {nthreads} ./{directory}/{document}.inp &')
-        while not os.path.exists(f'{directory}/{document}.out'):
-            continue
-        with open(f'{directory}/{document}.out', 'r') as output:
-            outstr = output.read()
-        while outstr.split('\n')[-1] != 'Variable memory released':
-            with open(f'{directory}/{document}.out', 'r') as file:
-                outstr = file.read()
+            os.system(f'molpro -n {nthreads} ./{directory}/{document}.inp')
+        with open(f'{directory}/{document}.out', 'r') as file:
+            outstr = file.read()
         for item in wanted:
-            self.output_values.update({item: (re.search(f'{item}.*', outstr))[0].replace(item, '').replace(' ', '')})
+            self.output_values.update({item: re.search(f'{item}.*', outstr)[0].replace(item, '').replace(' ', '')})
         if deldoc:
             os.remove(f'{directory}/{document}.inp')
         if not keep_output:
@@ -294,39 +289,39 @@ def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     return child
 
 
-#def get_values(molecules:list, wanted:list, documents:list=None, directory:str='data', keep_output:bool='False',
-#    nthreads:int=1):
-#    result = dict()
-#    deldoc = False
-#    if documents is None:
-#        documents = []
-#        for molecule in molecules:
-#            if molecule.label is not None:
-#                documents.append(molecule.label)
-#            else:
-#                documents.append(molecule.__hash__())
-#    for n, molecule in enumerate(molecules):
-#        if not os.path.exists(f'{directory}/{documents[n]}.out'):
-#            if not os.path.exists(f'{directory}/{documents[n]}.inp'):
-#                molecule.save(documents[n], directory)
-#                deldoc = True
-#                os.system(f'molpro -n {nthreads} {directory}/{documents[n]}.inp &')
-#    for n, molecule in enumerate(molecules):
-#        while not os.path.exists(f'{directory}/{documents[n]}.out'):
-#            continue
-#        with open('{directory}/{documents[n]}.out', 'r') as file:
-#            outstr = file.read()
-#        while len(outstr.split('\n')) < 2 or outstr.split('\n')[-2] != ' Variable memory released':
-#            with open('{directory}/{documents[n]}.out', 'r') as file:
-#                outstr = file.read()
-#        for item in wanted:
-#            molecule.output_values.update({item: re.search(f'{item}.*', outstr)[0].replace(item, '').replace(' ', '')})
-#        result.update({documents[n]: molecule.output_values})
-#        if deldoc:
-#            os.remove(f'{directory}/{documents[n]}.inp')
-#        if not keep_output:
-#            os.remove(f'{directory}/{documents[n]}.out')
-#            os.remove(f'{directory}/{documents[n]}.xml')
-#        else:
-#            molecule.output = f'{directory}/{documents[n]}.out'
-#        return result
+def get_values(molecules:list, wanted:list, documents:list=None, directory:str='data', keep_output:bool='False',
+    nthreads:int=1):
+    result = dict()
+    deldoc = False
+    if documents is None:
+        documents = []
+        for molecule in molecules:
+            if molecule.label is not None:
+                documents.append(molecule.label)
+            else:
+                documents.append(molecule.__hash__())
+    for n, molecule in enumerate(molecules):
+        if not os.path.exists(f'{directory}/{documents[n]}.out'):
+            if not os.path.exists(f'{directory}/{documents[n]}.inp'):
+                molecule.save(documents[n], directory)
+                deldoc = True
+                os.system(f'molpro -n {nthreads} {directory}/{documents[n]}.inp &')
+    for n, molecule in enumerate(molecules):
+        while not os.path.exists(f'{directory}/{documents[n]}.out'):
+            continue
+        with open('{directory}/{documents[n]}.out', 'r') as file:
+            outstr = file.read()
+        while len(outstr.split('\n')) < 2 or outstr.split('\n')[-2] != ' Variable memory released':
+            with open('{directory}/{documents[n]}.out', 'r') as file:
+                outstr = file.read()
+        for item in wanted:
+            molecule.output_values.update({item: re.search(f'{item}.*', outstr)[0].replace(item, '').replace(' ', '')})
+        result.update({documents[n]: molecule.output_values})
+        if deldoc:
+            os.remove(f'{directory}/{documents[n]}.inp')
+        if not keep_output:
+            os.remove(f'{directory}/{documents[n]}.out')
+            os.remove(f'{directory}/{documents[n]}.xml')
+        else:
+            molecule.output = f'{directory}/{documents[n]}.out'
+        return result

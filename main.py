@@ -16,11 +16,11 @@ def test_Al10():
 
     result = optimize(molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance, 
     crossover_elitism, mutate_after_crossover=True, parallelism=False, threads_per_calculation=3, mutation_rate=2)
-    result.save('best_Al10.inp')
+    result.save('best_Al10')
     return result
 
 
-def test_Al10_parallelism():  # não funciona e não sei porque
+def test_Al10_mp():  # não funciona e não sei porque
     molecule = Molecule.load('al_n.inp', rand_range=5)
     mutate_methods = Mutate([Mutate.swap_mutate, Mutate.mutate_angles, Mutate.mutate_distances], [1, 1, 1])
     crossover_methods = Crossover([Crossover.crossover_n, Crossover.crossover_1, Crossover.crossover_2], [1, 1, 1])
@@ -36,9 +36,9 @@ def test_Al10_parallelism():  # não funciona e não sei porque
     result = optimize(molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance,
     crossover_elitism, mutate_after_crossover=True, parallelism=True, elit_size=1, elitism_rate=[2],
     generations_tolerance=20, threads_per_calculation=1, max_gens=500, mutation_rate=2)
-    result.save('best_Al10_p.inp')
+    result.save('best_Al10_mp')
     return result
 
 
 if __name__ == '__main__':
-    test_Al10_parallelism()
+    test_Al10_mp()

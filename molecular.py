@@ -54,13 +54,13 @@ class Molecule:
             if not os.path.exists(f'{directory}/{document}.inp'):
                 self.save(document, directory)
                 deldoc = True
-            os.system(f'molpro -n {nthreads} ./{directory}/{document}.inp')
+            os.system(f'molpro -n {nthreads} ./{directory}/{document}.inp &')
         while not os.path.exists(f'{directory}/{document}.out'):
             continue
         with open(f'{directory}/{document}.out', 'r') as output:
             outstr = output.read()
         while outstr.split('\n')[-1] != 'Variable memory released':
-            with open('{directory}/{documents[n]}.out', 'r') as file:
+            with open(f'{directory}/{document}.out', 'r') as file:
                 outstr = file.read()
         for item in wanted:
             self.output_values.update({item: (re.search(f'{item}.*', outstr))[0].replace(item, '').replace(' ', '')})
@@ -117,7 +117,7 @@ class Molecule:
         return Molecule(basis, geometry, settings, parameters, rand_range, label, output, output_values)
     
 
-def swap_mutate(molecule, times:int=1) -> Molecule:
+def swap_mutate(molecule, times:int=1, label:str=None) -> Molecule:
     new_molecule = molecule.copy()
     index0, index1, index2, index3 = 0, 0, 0, 0
     while (index0, index1) == (index2, index3):
@@ -126,6 +126,7 @@ def swap_mutate(molecule, times:int=1) -> Molecule:
     new_molecule.geometry[index2][index3], new_molecule.geometry[index0][index1]
     new_molecule.output = None
     new_molecule.output_values = dict()
+    new_molecule.label = label
     return new_molecule
 
 
@@ -141,7 +142,7 @@ def _get_swap_indexes(new_molecule):
     return index0, index1, index2, index3
 
 
-def mutate_angles(molecule, times:int=1) -> Molecule:
+def mutate_angles(molecule, times:int=1, label:str=None) -> Molecule:
     new_molecule = molecule.copy()
     index0 = random.choice(range(3, len(new_molecule.geometry)))
     index1 = random.choice(range(4, len(new_molecule.geometry[index0]) + 1, 2))
@@ -149,10 +150,11 @@ def mutate_angles(molecule, times:int=1) -> Molecule:
         new_molecule.geometry[index0][index1] = str(random.uniform(0, 360))
     else:
         new_molecule.parameters[new_molecule.geometry[index0][index1]] = str(random.uniform(0, 360))
+    new_molecule.label = label
     return new_molecule
 
 
-def mutate_distances(molecule, times:int=1) -> Molecule:
+def mutate_distances(molecule, times:int=1, label:str=None) -> Molecule:
     new_molecule = molecule.copy()
     index0 = random.choice(range(2, len(new_molecule.geometry)))
     if new_molecule.geometry[index0][2].replace('.', '').isdigit():
@@ -161,6 +163,7 @@ def mutate_distances(molecule, times:int=1) -> Molecule:
         new_molecule.parameters[new_molecule.geometry[index0][2]] = str(random.uniform(0, new_molecule.rand_range))
     new_molecule.output = None
     new_molecule.output_values = dict()
+    new_molecule.label = label
     return new_molecule
 
 
@@ -291,39 +294,39 @@ def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     return child
 
 
-def get_values(molecules:list, wanted:list, documents:list=None, directory:str='data', keep_output:bool='False',
-    nthreads:int=1):
-    result = dict()
-    deldoc = False
-    if documents is None:
-        documents = []
-        for molecule in molecules:
-            if molecule.label is not None:
-                documents.append(molecule.label)
-            else:
-                documents.append(molecule.__hash__())
-    for n, molecule in enumerate(molecules):
-        if not os.path.exists(f'{directory}/{documents[n]}.out'):
-            if not os.path.exists(f'{directory}/{documents[n]}.inp'):
-                molecule.save(documents[n], directory)
-                deldoc = True
-                os.system(f'molpro -n {nthreads} {directory}/{documents[n]}.inp &')
-    for n, molecule in enumerate(molecules):
-        while not os.path.exists(f'{directory}/{documents[n]}.out'):
-            continue
-        with open('{directory}/{documents[n]}.out', 'r') as file:
-            outstr = file.read()
-        while outstr.split('\n')[-1] != 'Variable memory released':
-            with open('{directory}/{documents[n]}.out', 'r') as file:
-                outstr = file.read()
-        for item in wanted:
-            molecule.output_values.update({item: re.search(f'{item}.*', outstr)[0].replace(item, '').replace(' ', '')})
-        result.update({documents[n]: molecule.output_values})
-        if deldoc:
-            os.remove(f'{directory}/{documents[n]}.inp')
-        if not keep_output:
-            os.remove(f'{directory}/{documents[n]}.out')
-            os.remove(f'{directory}/{documents[n]}.xml')
-        else:
-            molecule.output = f'{directory}/{documents[n]}.out'
-        return result
+#def get_values(molecules:list, wanted:list, documents:list=None, directory:str='data', keep_output:bool='False',
+#    nthreads:int=1):
+#    result = dict()
+#    deldoc = False
+#    if documents is None:
+#        documents = []
+#        for molecule in molecules:
+#            if molecule.label is not None:
+#                documents.append(molecule.label)
+#            else:
+#                documents.append(molecule.__hash__())
+#    for n, molecule in enumerate(molecules):
+#        if not os.path.exists(f'{directory}/{documents[n]}.out'):
+#            if not os.path.exists(f'{directory}/{documents[n]}.inp'):
+#                molecule.save(documents[n], directory)
+#                deldoc = True
+#                os.system(f'molpro -n {nthreads} {directory}/{documents[n]}.inp &')
+#    for n, molecule in enumerate(molecules):
+#        while not os.path.exists(f'{directory}/{documents[n]}.out'):
+#            continue
+#        with open('{directory}/{documents[n]}.out', 'r') as file:
+#            outstr = file.read()
+#        while len(outstr.split('\n')) < 2 or outstr.split('\n')[-2] != ' Variable memory released':
+#            with open('{directory}/{documents[n]}.out', 'r') as file:
+#                outstr = file.read()
+#        for item in wanted:
+#            molecule.output_values.update({item: re.search(f'{item}.*', outstr)[0].replace(item, '').replace(' ', '')})
+#        result.update({documents[n]: molecule.output_values})
+#        if deldoc:
+#            os.remove(f'{directory}/{documents[n]}.inp')
+#        if not keep_output:
+#            os.remove(f'{directory}/{documents[n]}.out')
+#            os.remove(f'{directory}/{documents[n]}.xml')
+#        else:
+#            molecule.output = f'{directory}/{documents[n]}.out'
+#        return result

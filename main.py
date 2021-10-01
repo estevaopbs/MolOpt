@@ -41,4 +41,4 @@ def test_Al10_parallelism():  # não funciona e não sei porque
 
 
 if __name__ == '__main__':
-    test_Al10()
+    test_Al10_parallelism()

@@ -50,15 +50,20 @@ class Molecule:
         nthreads:int=1) -> dict:
         document = document if document is not None else self.label if self.label is not None else str(self.__hash__())
         deldoc = False
-        if not os.path.isfile(f'{directory}/{document}.out'):
-            if not os.path.isfile(f'{directory}/{document}.inp'):
+        if not os.path.exists(f'{directory}/{document}.out'):
+            if not os.path.exists(f'{directory}/{document}.inp'):
                 self.save(document, directory)
                 deldoc = True
             os.system(f'molpro -n {nthreads} ./{directory}/{document}.inp')
+        while not os.path.exists(f'{directory}/{document}.out'):
+            continue
         with open(f'{directory}/{document}.out', 'r') as output:
             outstr = output.read()
+        while outstr.split('\n')[-1] != 'Variable memory released':
+            with open('{directory}/{documents[n]}.out', 'r') as file:
+                outstr = file.read()
         for item in wanted:
-            self.output_values.update({item: re.search(f'{item}.*', outstr)[0].replace(item, '').replace(' ', '')})
+            self.output_values.update({item: (re.search(f'{item}.*', outstr))[0].replace(item, '').replace(' ', '')})
         if deldoc:
             os.remove(f'{directory}/{document}.inp')
         if not keep_output:
@@ -308,7 +313,7 @@ def get_values(molecules:list, wanted:list, documents:list=None, directory:str='
             continue
         with open('{directory}/{documents[n]}.out', 'r') as file:
             outstr = file.read()
-        while outstr.split('\n')[-1] is not 'Variable memory released':
+        while outstr.split('\n')[-1] != 'Variable memory released':
             with open('{directory}/{documents[n]}.out', 'r') as file:
                 outstr = file.read()
         for item in wanted:

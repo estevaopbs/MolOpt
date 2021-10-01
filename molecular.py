@@ -7,7 +7,7 @@ import copy
 class Molecule:
     __slots__ = ('basis', 'parameters', 'geometry', 'settings', 'rand_range', 'label', 'output_values', 'output')
     def __init__(self, basis:str, geometry:list, settings:list, parameters:dict=dict(), rand_range:float=None, 
-                 label:str=None, output:str=None, output_values:dict=dict()):
+                 label:str=None, output:str=None, output_values:dict=dict()) -> None:
         self.basis = basis
         self.parameters = parameters
         self.geometry = geometry
@@ -18,7 +18,7 @@ class Molecule:
         self.output_values = output_values
 
     @property
-    def dist_unit(self):
+    def dist_unit(self) -> str:
         return self.geometry[0][0]
 
     def __str__(self) -> str:
@@ -46,26 +46,26 @@ class Molecule:
         with open(f'{directory}{document}.inp', 'w') as file:
             file.write(str(self))
 
-    def get_value(self, wanted:list, document=None, directory:str='data', keep_output:bool=False, nthreads=1) -> dict:
+    def get_value(self, wanted:list, document=None, directory:str='data', keep_output:bool=False, 
+        nthreads:int=1) -> dict:
         document = document if document is not None else self.label if self.label is not None else str(self.__hash__())
         deldoc = False
-        input_address = f'{directory}/{document}.inp'
-        if not os.path.isfile(input_address):
-            self.save(document, directory)
-            deldoc = True
-        output_address = f'{directory}/{document}.out'
-        if not os.path.isfile(output_address):
-            os.system(f'molpro -n {nthreads} ./{input_address}')
-        with open(output_address, 'r') as output:
+        if not os.path.isfile(f'{directory}/{document}.out'):
+            if not os.path.isfile(f'{directory}/{document}.inp'):
+                self.save(document, directory)
+                deldoc = True
+            os.system(f'molpro -n {nthreads} ./{directory}/{document}.inp')
+        with open(f'{directory}/{document}.out', 'r') as output:
             outstr = output.read()
         for item in wanted:
-            self.output_values.update({item: (re.search(f'{item}.*', outstr)[0]).replace(item, '').replace(' ', '')})
-        self.output = output_address
+            self.output_values.update({item: re.search(f'{item}.*', outstr)[0].replace(item, '').replace(' ', '')})
         if deldoc:
-            os.remove(input_address)
+            os.remove(f'{directory}/{document}.inp')
         if not keep_output:
-            os.remove(output_address[:-3] + 'xml')
-            os.remove(output_address)
+            os.remove(f'{directory}/{document}.xml')
+            os.remove(f'{directory}/{document}.out')
+        else:
+            self.output = f'{directory}/{document}.out'
         return self.output_values
     
     def copy(self):
@@ -251,7 +251,6 @@ def crossover_1(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     return child
 
 
-#consertar
 def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     if len(parent.geometry) < 5:
         raise Exception('Molecules does not has enough atoms for crossover_2.')
@@ -285,3 +284,41 @@ def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
             for parameter in keys[index1:index2]:
                 child.parameters[parameter] = donor.parameters[parameter]
     return child
+
+
+def get_values(molecules:list, wanted:list, documents:list=None, directory:str='data', keep_output:bool='False',
+    nthreads:int=1):
+    result = dict()
+    deldoc = False
+    if documents is None:
+        documents = []
+        for molecule in molecules:
+            if molecule.label is not None:
+                documents.append(molecule.label)
+            else:
+                documents.append(molecule.__hash__())
+    for n, molecule in enumerate(molecules):
+        if not os.path.exists(f'{directory}/{documents[n]}.out'):
+            if not os.path.exists(f'{directory}/{documents[n]}.inp'):
+                molecule.save(documents[n], directory)
+                deldoc = True
+                os.system(f'molpro -n {nthreads} {directory}/{documents[n]}.inp &')
+    for n, molecule in enumerate(molecules):
+        while not os.path.exists(f'{directory}/{documents[n]}.out'):
+            continue
+        with open('{directory}/{documents[n]}.out', 'r') as file:
+            outstr = file.read()
+        while outstr.split('\n')[-1] is not 'Variable memory released':
+            with open('{directory}/{documents[n]}.out', 'r') as file:
+                outstr = file.read()
+        for item in wanted:
+            molecule.output_values.update({item: re.search(f'{item}.*', outstr)[0].replace(item, '').replace(' ', '')})
+        result.update({documents[n]: molecule.output_values})
+        if deldoc:
+            os.remove(f'{directory}/{documents[n]}.inp')
+        if not keep_output:
+            os.remove(f'{directory}/{documents[n]}.out')
+            os.remove(f'{directory}/{documents[n]}.xml')
+        else:
+            molecule.output = f'{directory}/{documents[n]}.out'
+        return result

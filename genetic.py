@@ -1,7 +1,5 @@
-import copy
 import time
 from bisect import bisect_left
-import random
 from math import exp
 from molecular import *
 import multiprocessing as mp
@@ -128,7 +126,6 @@ def get_improvement_p(new_child, first_parent, generate_parent, maxAge, poolSize
     last_improvement_time = startTime
     queue = mp.Queue(maxsize=poolSize - 1)
     processes = []
-    results = dict()
     if elit_size is not None:
         if elitism_rate is None:
             elitism_rate = [2 for _ in range(elit_size)]
@@ -220,7 +217,106 @@ def get_improvement_p(new_child, first_parent, generate_parent, maxAge, poolSize
                 continue
             parents[pindex] = next_gen[pindex]
             parents.sort(key=lambda p: p.Fitness, reverse=True)
-                    
+
+    
+def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSize, maxSeconds, elit_size, elitism_rate,
+    max_gen, gen_toler, time_toler):
+    startTime = time.time()
+    last_improvement_time = startTime
+    queue = mp.Queue(maxsize=poolSize - 1)
+    processes = []
+    if elit_size is not None:
+        if elitism_rate is None:
+            elitism_rate = [2 for _ in range(elit_size)]
+            if sum(elitism_rate) > poolSize:
+                raise Exception('Minimal elitism exceeds pool size. Increase the pool size or reduce the elit size.')
+    bestParent = first_parent
+    yield maxSeconds is not None and time.time() - startTime > maxSeconds, bestParent
+    parents = [bestParent]
+    historicalFitnesses = [bestParent.Fitness]
+    for _ in range(poolSize - 1):
+        processes.append(mp.Process(target=generate_parent, args=(queue,)))
+    for process in processes:
+        process.start()
+    for process in processes:
+        process.join()
+    for _ in range(poolSize - 1):
+        parents.append(queue.get())
+    sorted_next_gen = copy.copy(parents)
+    sorted_next_gen.sort(key=lambda c: c.Fitness, reverse=False)
+    for parent in sorted_next_gen:     
+        if parent.Fitness > bestParent.Fitness:
+            yield False, parent
+            bestParent = parent
+            last_improvement_time = time.time()
+            historicalFitnesses.append(parent.Fitness)
+    parents.sort(key=lambda p: p.Fitness, reverse=True)
+    gen = 0
+    last_improvement_gen = 0
+    while True:
+        gen += 1
+        if maxSeconds is not None and time.time() - startTime > maxSeconds:
+            yield True, bestParent
+        if max_gen is not None and gen > max_gen:
+            yield True, bestParent
+        if gen_toler is not None and gen - last_improvement_gen > gen_toler + 1:
+            yield True, bestParent
+        if time_toler is not None and time.time() - last_improvement_time > time_toler:
+            yield True, bestParent
+        next_gen = []
+        queue = mp.Queue(maxsize=poolSize)
+        processes = []
+        results = dict()
+        if elit_size is not None:
+            for pindex in range(elit_size):
+                for i in range(elitism_rate[pindex]):
+                    processes.append(mp.Process(target=new_child, args=(parent, pindex, queue, pindex + i)))
+            for pindex in range(elit_size, poolSize - len(next_gen) + elit_size):
+                processes.append(mp.Process(target=new_child, args=(parent, pindex, queue, pindex)))
+        else:
+            for pindex in range(len(parents)):
+                processes.append(mp.Process(target=new_child, args=(parent, pindex, queue, pindex)))
+        for process in processes:
+            process.start()
+        for process in processes:
+            process.join()
+        for _ in range(poolSize):
+            results.update(queue.get())
+        for i in range(poolSize):
+            next_gen.append(results[str(i)])
+        sorted_next_gen = copy.copy(next_gen)
+        sorted_next_gen.sort(key=lambda c: c.Fitness, reverse=False)
+        for child in sorted_next_gen:
+            if child.Fitness > bestParent.Fitness:
+                yield False, child
+                bestParent = child
+                historicalFitnesses.append(child.Fitness)
+                last_improvement_gen = gen
+                last_improvement_time = time.time()
+        for pindex in range(len(poolSize)):
+            if next_gen[pindex].Fitness < parents[pindex]:
+                if maxAge is None:
+                    continue
+                parents[pindex] += 1
+                if parents[pindex].Age < maxAge:
+                    continue
+                index = bisect_left(historicalFitnesses, next_gen[pindex].Fitness, 0, len(historicalFitnesses))
+                difference = len(historicalFitnesses) - index
+                proportionSimilar = difference / len(historicalFitnesses)
+                if random.random() < exp(-proportionSimilar):
+                    next_gen[pindex].Age = parents[pindex].Age
+                    parents[pindex] = next_gen[pindex]
+                    continue
+                parents[pindex] = copy.deepcopy(bestParent)
+                parents[pindex].Age = 0
+                continue
+            if not next_gen[pindex].Fitness > parents[pindex].Fitness:
+                next_gen[pindex].Age = parents[pindex].Age + 1
+                parents[pindex] = next_gen[pindex]
+                continue
+            parents[pindex] = next_gen[pindex]
+            parents.sort(key=lambda p: p.Fitness, reverse=True)
+
 
 def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int=None, pool_size:int=1, 
     max_seconds:float=None, time_tolerance:int=None, crossover_elitism=lambda x: 1, 
@@ -290,21 +386,29 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         return child
 
     def fn_generate_parent(queue=None):
-        while True:
-            try:
-                parent = Chromosome()
-                parent.Genes = create_lookup[random.choices(create_methods.methods, create_methods.rate)[0]]\
-                    (first_molecule)
-                parent.Fitness = get_fitness(parent.Genes, fitness_param, threads_per_calculation)
-                break
-            except:
-                os.remove(f'data/{parent.Genes.__hash__()}.inp')
-                os.remove(f'data/{parent.Genes.__hash__()}.out')
-                os.remove(f'data/{parent.Genes.__hash__()}.xml')
-                continue
+        #while True:
+        #    try:
+        parent = Chromosome()
+        parent.Genes = create_lookup[random.choices(create_methods.methods, create_methods.rate)[0]](first_molecule)
+        parent.Fitness = get_fitness(parent.Genes, fitness_param, threads_per_calculation)
+        #        break
+        #    except:
+        os.remove(f'data/{parent.Genes.__hash__()}.inp')
+        os.remove(f'data/{parent.Genes.__hash__()}.out')
+        os.remove(f'data/{parent.Genes.__hash__()}.xml')
+        #        continue
         if queue is not None:
             queue.put(parent)
         return parent
+
+    
+    def get_next_gen(candidates):
+        pass
+
+    
+    def generate_first_gen():
+        pass
+
     
     usedStrategies = []
     first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, threads_per_calculation), 
@@ -312,17 +416,23 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     if not parallelism:
         for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
         max_seconds, time_tolerance):
+            if os.path.isfile('data/best.inp'):
+                improvement.Genes.save('best')
             display(improvement, start_time)
             f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)
-            if timedOut :
+            if timedOut:
                 break
     else:
-        for timedOut, improvement in get_improvement_p(get_child, first_parent, fn_generate_parent, max_age, pool_size,
+        for timedOut, improvement in get_improvement_mp(get_child, first_parent, fn_generate_parent, max_age, pool_size,
         max_seconds, elit_size, elitism_rate, max_gens, generations_tolerance, time_tolerance):
+            if os.path.isfile('data/best.inp'):
+                os.remove('data/best.inp')
+            improvement.Genes.save('best')
             display(improvement, start_time)
             f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)
-            if timedOut :
+            if timedOut:
                 break
+    os.remove('data/best.inp')
     return improvement.Genes

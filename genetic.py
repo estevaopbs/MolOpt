@@ -326,7 +326,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             else:
                 f = (None, None)
             with open('strategies_log.txt', 'a') as slog:
-                slog.write(str(f).replace('(', '').replace(')', '') + '\n')
+                slog.write(str(f).replace('(', '').replace(')', '').replace('\'', '') + '\n')
             usedStrategies.append(f)
             n += 1
             if timedOut:
@@ -341,9 +341,11 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             else:
                 f = (None, None)
             with open('strategies_log.txt', 'a') as slog:
-                slog.write(str(f).replace('(', '').replace(')', '') + '\n')
+                slog.write(str(f).replace('(', '').replace(')', '').replace('\'', '') + '\n')
             usedStrategies.append(f)
             n += 1
             if timedOut:
                 break
+    with open('strategies_log.txt', 'a') as slog:
+        slog.write('\n---\n\n')
     return improvement.Genes, usedStrategies

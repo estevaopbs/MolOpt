@@ -309,24 +309,27 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     usedStrategies = []
     first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, threads_per_calculation), 
     None, None)
+    n = 0
     if not parallelism:
         first_parent.Genes.label = '0'
-        for n, timedOut, improvement in enumerate(get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
-        max_seconds, time_tolerance)):
+        for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
+        max_seconds, time_tolerance):
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
             f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)
+            n += 1
             if timedOut:
                 break
     else:
         first_parent.Genes.label = '0_0'
-        for n, timedOut, improvement in enumerate(get_improvement_mp(get_child, first_parent, fn_generate_parent, max_age, pool_size,
-        max_seconds, elit_size, elitism_rate, max_gens, generations_tolerance, time_tolerance)):
+        for timedOut, improvement in get_improvement_mp(get_child, first_parent, fn_generate_parent, max_age, pool_size,
+        max_seconds, elit_size, elitism_rate, max_gens, generations_tolerance, time_tolerance):
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
             f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)
+            n += 1
             if timedOut:
                 break
     return improvement.Genes, usedStrategies

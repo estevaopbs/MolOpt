@@ -6,7 +6,7 @@ import multiprocessing as mp
 
 
 class Load:
-    dict_log = {0: ''}
+    log_dict = {0: ''}
 
 
 class Chromosome:

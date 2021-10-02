@@ -174,10 +174,10 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
             for pindex in range(elit_size):
                 for i in range(elitism_rate[pindex]):
                     processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, pindex + i, f'{gen}_{pindex + i}')))
-            for pindex in range(elit_size + 1, poolSize - sum(elitism_rate) + elit_size + 1):
-                processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, pindex, f'{gen}_{pindex}')))
+            for pindex in range(elit_size, poolSize - sum(elitism_rate) + elit_size):
+                processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, pindex, f'{gen}_{pindex + sum(elitism_rate) - poolSize}')))
         else:
-            for pindex in range(len(parents)):
+            for pindex in range(poolSize):
                 processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, pindex, f'{pindex}')))
         for process in processes:
             process.start()

@@ -257,7 +257,6 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     create_lookup = {
         Create.randomize: lambda p, d=0: randomize(p),
         Create.mutate_first: lambda p, d=0: mutate(first_molecule)
-        # At least one mutate method is needed for this one
     }
     strategy_lookup = {
         Strategies.Create: create_lookup,
@@ -265,7 +264,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         Strategies.Crossover: crossover_lookup
     }
 
-    def get_child(candidates, parent_index, queue:mp.Queue=None, child_index:int=None, label:str=None): # dar um jeito de usar bisect ao inves de deepcopy
+    def get_child(candidates, parent_index, queue:mp.Queue=None, child_index:int=None, label:str=None):
         while True:
             try:
                 parent = candidates[parent_index]

@@ -20,7 +20,7 @@ def test_Al10():
     return result
 
 
-def test_Al10_mp():  # não funciona e não sei porque
+def test_Al10_mp():
     molecule = Molecule.load('al_n.inp', rand_range=5)
     mutate_methods = Mutate([Mutate.swap_mutate, Mutate.mutate_angles, Mutate.mutate_distances], [1, 1, 1])
     crossover_methods = Crossover([Crossover.crossover_n, Crossover.crossover_1, Crossover.crossover_2], [1, 1, 1])

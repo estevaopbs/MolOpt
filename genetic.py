@@ -28,6 +28,7 @@ class Create:
     randomize = 0
     mutate_first = 1
     strategy = 0
+    log_dict = {0: 'randomize', 1: 'mutate_first'}
 
     def __init__(self, methods:list, methods_rate:list):
         self.methods = methods
@@ -39,6 +40,7 @@ class Mutate:
     mutate_angles = 1
     mutate_distances = 2
     strategy = 1
+    log_dict = {0: 'swap_mutate', 1: 'mutate_angles', 2: 'mutate_distances'}
 
     def __init__(self, methods:list, methods_rate:list):
         self.methods = methods
@@ -50,6 +52,7 @@ class Crossover:
     crossover_1 = 1
     crossover_2 = 2
     strategy = 2
+    log_dict = {0: 'crossover_n', 1: 'crossover_1', 2: 'crossover_2'}
 
     def __init__(self, methods:list, methods_rate:list):
         self.methods = methods
@@ -305,7 +308,6 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             queue.put(parent)
         return parent
 
-    strategies_log = open('strategies_log.txt', 'a+')
     usedStrategies = []
     if not parallelism:
         first_molecule.label = '0'
@@ -319,8 +321,12 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         max_seconds, time_tolerance):
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
-            f = (improvement.Strategy, improvement.Method)
-            strategies_log.write(str(f).replace('(', '').replace(')', '') + '\n')
+            if improvement.Strategy is not None:
+                f = (improvement.Strategy.__class__.__name__, improvement.Strategy.log_dict[improvement.Method])
+            else:
+                f = (None, None)
+            with open('strategies_log.txt', 'a') as slog:
+                slog.write(str(f).replace('(', '').replace(')', '') + '\n')
             usedStrategies.append(f)
             n += 1
             if timedOut:
@@ -330,8 +336,12 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         max_seconds, elit_size, elitism_rate, max_gens, generations_tolerance, time_tolerance):
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
-            f = (improvement.Strategy, improvement.Method)
-            strategies_log.write(str(f).replace('(', '').replace(')', '') + '\n')
+            if improvement.Strategy is not None:
+                f = (improvement.Strategy.__class__.__name__, improvement.Strategy.log_dict[improvement.Method])
+            else:
+                f = (None, None)
+            with open('strategies_log.txt', 'a') as slog:
+                slog.write(str(f).replace('(', '').replace(')', '') + '\n')
             usedStrategies.append(f)
             n += 1
             if timedOut:

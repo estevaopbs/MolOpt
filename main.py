@@ -14,9 +14,9 @@ def test_Al10():
     crossover_elitism = lambda x: 1
     fitness_param = '!RKS STATE 1.1 Energy'
 
-    result = optimize(molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance, 
+    result, strategies = optimize(molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance, 
     crossover_elitism, mutate_after_crossover=True, parallelism=False, threads_per_calculation=3, mutation_rate=2)
-    result.save('best_Al10')
+    result.save('best_Al10', directory='')
     return result
 
 
@@ -33,10 +33,10 @@ def test_Al10_mp():  # não funciona e não sei porque
     crossover_elitism = lambda x: 1
     fitness_param = '!RKS STATE 1.1 Energy'
 
-    result = optimize(molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance,
+    result, strategies = optimize(molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance,
     crossover_elitism, mutate_after_crossover=True, parallelism=True, elit_size=1, elitism_rate=[2],
     generations_tolerance=20, threads_per_calculation=1, max_gens=500, mutation_rate=2)
-    result.save('best_Al10_mp')
+    result.save('best_Al10_mp', directory='')
     return result
 
 

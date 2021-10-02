@@ -72,8 +72,8 @@ def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, 
     yield maxSeconds is not None and time.time() - startTime > maxSeconds, bestParent
     parents = [bestParent]
     historicalFitnesses = [bestParent.Fitness]
-    for _ in range(poolSize - 1):
-        parent = generate_parent()
+    for n in range(poolSize - 1):
+        parent = generate_parent(label=f'{n+1}')
         if maxSeconds is not None and time.time() - startTime > maxSeconds:
             yield True, parent
         if parent.Fitness > bestParent.Fitness:
@@ -84,14 +84,16 @@ def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, 
         parents.append(parent)
     lastParentIndex = poolSize - 1
     pindex = 1
+    n = poolSize
     while True:
+        n += 1
         if maxSeconds is not None and time.time() - startTime > maxSeconds:
             yield True, bestParent
         if time_toler is not None and time.time() - last_improvement_time > time_toler:
             yield True, bestParent
         pindex = pindex - 1 if pindex > 0 else lastParentIndex
         parent = parents[pindex]
-        child = new_child(parents, pindex)
+        child = new_child(parents, pindex, label=f'{n}')
         if parent.Fitness > child.Fitness:
             if maxAge is None:
                 continue
@@ -194,7 +196,7 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
                 historicalFitnesses.append(child.Fitness)
                 last_improvement_gen = gen
                 last_improvement_time = time.time()
-        for pindex in range(len(poolSize)):
+        for pindex in range(poolSize):
             if next_gen[pindex].Fitness < parents[pindex].Fitness:
                 if maxAge is None:
                     continue
@@ -275,13 +277,13 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 child.Strategy = random.choices(strategies.strategies, strategies.rate)[0]
                 child.Method = random.choices(child.Strategy.methods, child.Strategy.rate)[0]
                 child.Genes = strategy_lookup[child.Strategy.strategy][child.Method](parent.Genes, donor.Genes)
-                child.Genes.label=label
+                child.Genes.label = label
                 child.Fitness = get_fitness(child.Genes, fitness_param, threads_per_calculation)
                 break
             except:
-                os.remove(f'data/{child.Genes.__hash__()}.inp')
-                os.remove(f'data/{child.Genes.__hash__()}.out')
-                os.remove(f'data/{child.Genes.__hash__()}.xml')
+                os.remove(f'data/{child.Genes.label}.inp')
+                os.remove(f'data/{child.Genes.label}.out')
+                os.remove(f'data/{child.Genes.label}.xml')
                 continue
         if queue is not None:
             queue.put({child_index: child})
@@ -296,39 +298,34 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 parent.Fitness = get_fitness(parent.Genes, fitness_param, threads_per_calculation)
                 break
             except:
-                os.remove(f'data/{parent.Genes.__hash__()}.inp')
-                os.remove(f'data/{parent.Genes.__hash__()}.out')
-                os.remove(f'data/{parent.Genes.__hash__()}.xml')
+                os.remove(f'data/{parent.Genes.label}.inp')
+                os.remove(f'data/{parent.Genes.label}.out')
+                os.remove(f'data/{parent.Genes.label}.xml')
                 continue
         if queue is not None:
             queue.put(parent)
         return parent
 
-    
     usedStrategies = []
     first_molecule.label = '0_0'
     first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, threads_per_calculation), 
     None, None)
     if not parallelism:
-        for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
-        max_seconds, time_tolerance):
-            if os.path.isfile('data/best.inp'):
-                improvement.Genes.save('best')
+        for n, timedOut, improvement in enumerate(get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
+        max_seconds, time_tolerance)):
+            improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
             f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)
             if timedOut:
                 break
     else:
-        for timedOut, improvement in get_improvement_mp(get_child, first_parent, fn_generate_parent, max_age, pool_size,
-        max_seconds, elit_size, elitism_rate, max_gens, generations_tolerance, time_tolerance):
-            if os.path.isfile('data/best.inp'):
-                os.remove('data/best.inp')
-            improvement.Genes.save('best')
+        for n, timedOut, improvement in enumerate(get_improvement_mp(get_child, first_parent, fn_generate_parent, max_age, pool_size,
+        max_seconds, elit_size, elitism_rate, max_gens, generations_tolerance, time_tolerance)):
+            improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
             f = (improvement.Strategy, improvement.Method)
             usedStrategies.append(f)
             if timedOut:
                 break
-    os.remove('data/best.inp')
-    return improvement.Genes
+    return improvement.Genes, usedStrategies

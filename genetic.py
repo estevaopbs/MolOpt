@@ -301,7 +301,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         while True:
             try:
                 parent = Chromosome()
-                parent.Strategy = Create
+                parent.Strategy = create_methods
                 parent.Method = random.choices(create_methods.methods, create_methods.rate)[0]
                 parent.Genes = create_lookup[parent.Method](first_molecule)
                 parent.Genes.label = label
@@ -321,7 +321,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         first_molecule.label = '0'
     else:
         first_molecule.label = '0_0'
-    first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, threads_per_calculation), Load, 
+    first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, threads_per_calculation), Load(), 
     0)
     n = 0
     if not parallelism:

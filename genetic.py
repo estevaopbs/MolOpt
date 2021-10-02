@@ -306,6 +306,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             queue.put(parent)
         return parent
 
+    strategies_log = open('strategies_log.txt', 'w+')
     usedStrategies = []
     first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, threads_per_calculation), 
     None, None)
@@ -317,6 +318,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
             f = (improvement.Strategy, improvement.Method)
+            strategies_log.write(str(f).replace('(', '').replace(')', '') + '\n')
             usedStrategies.append(f)
             n += 1
             if timedOut:
@@ -328,6 +330,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
             f = (improvement.Strategy, improvement.Method)
+            strategies_log.write(str(f).replace('(', '').replace(')', '') + '\n')
             usedStrategies.append(f)
             n += 1
             if timedOut:

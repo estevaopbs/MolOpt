@@ -5,6 +5,10 @@ from molecular import *
 import multiprocessing as mp
 
 
+class Load:
+    dict_log = {0: ''}
+
+
 class Chromosome:
     def __init__(self, genes=None, fitness=None, strategy=None, method=None, Age=0):
         self.Genes = genes
@@ -176,9 +180,11 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
         if elit_size is not None:
             for pindex in range(elit_size):
                 for i in range(elitism_rate[pindex]):
-                    processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, i + sum(elitism_rate[:pindex]), f'{gen}_{i + sum(elitism_rate[:pindex])}')))
+                    processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, i + \
+                        sum(elitism_rate[:pindex]), f'{gen}_{i + sum(elitism_rate[:pindex])}')))
             for pindex in range(elit_size, poolSize - sum(elitism_rate) + elit_size):
-                processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, sum(elitism_rate) + pindex - elit_size, f'{gen}_{sum(elitism_rate) + pindex - elit_size}')))
+                processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, sum(elitism_rate) + pindex \
+                    - elit_size, f'{gen}_{sum(elitism_rate) + pindex - elit_size}')))
         else:
             for pindex in range(poolSize):
                 processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, pindex, f'{gen}_{pindex}')))
@@ -295,7 +301,9 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         while True:
             try:
                 parent = Chromosome()
-                parent.Genes = create_lookup[random.choices(create_methods.methods, create_methods.rate)[0]](first_molecule)
+                parent.Strategy = Create
+                parent.Method = random.choices(create_methods.methods, create_methods.rate)[0]
+                parent.Genes = create_lookup[parent.Method](first_molecule)
                 parent.Genes.label = label
                 parent.Fitness = get_fitness(parent.Genes, fitness_param, threads_per_calculation)
                 break
@@ -313,18 +321,15 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         first_molecule.label = '0'
     else:
         first_molecule.label = '0_0'
-    first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, threads_per_calculation), 
-    None, None)
+    first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, threads_per_calculation), Load, 
+    0)
     n = 0
     if not parallelism:
         for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
         max_seconds, time_tolerance):
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
-            if improvement.Strategy is not None:
-                f = (improvement.Strategy.__class__.__name__, improvement.Strategy.log_dict[improvement.Method])
-            else:
-                f = (None, None)
+            f = (improvement.Strategy.__class__.__name__, improvement.Strategy.log_dict[improvement.Method])
             with open('strategies_log.txt', 'a') as slog:
                 slog.write(f'{f[0]}, {f[1]}\n')
             usedStrategies.append(f)
@@ -336,10 +341,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         max_seconds, elit_size, elitism_rate, max_gens, generations_tolerance, time_tolerance):
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
-            if improvement.Strategy is not None:
-                f = (improvement.Strategy.__class__.__name__, improvement.Strategy.log_dict[improvement.Method])
-            else:
-                f = (None, None)
+            f = (improvement.Strategy.__class__.__name__, improvement.Strategy.log_dict[improvement.Method])
             with open('strategies_log.txt', 'a') as slog:
                 slog.write(f'{f[0]}, {f[1]}\n')
             usedStrategies.append(f)

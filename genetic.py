@@ -80,7 +80,7 @@ def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, 
     parents = [bestParent]
     historicalFitnesses = [bestParent.Fitness]
     for n in range(poolSize - 1):
-        parent = generate_parent(label=f'{n+1}')
+        parent = generate_parent(label=f'{n+1}_{n+1}')
         if maxSeconds is not None and time.time() - startTime > maxSeconds:
             yield True, parent
         if parent.Fitness > bestParent.Fitness:

@@ -100,7 +100,7 @@ def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, 
             yield True, bestParent
         pindex = pindex - 1 if pindex > 0 else lastParentIndex
         parent = parents[pindex]
-        child = new_child(parents, pindex, label=f'{n}')
+        child = new_child(parents, pindex, label=f'{n}_{pindex}')
         if parent.Fitness > child.Fitness:
             if maxAge is None:
                 continue
@@ -317,10 +317,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         return parent
 
     usedStrategies = []
-    if not parallelism:
-        first_molecule.label = '0'
-    else:
-        first_molecule.label = '0_0'
+    first_molecule.label = '0_0'
     first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, threads_per_calculation), Load(), 
     0)
     n = 0

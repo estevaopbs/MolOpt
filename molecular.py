@@ -40,11 +40,14 @@ class Molecule:
     def save(self, document:str=None, directory:str='data') -> None:
         document = document if document is not None else self.label if\
              self.label is not None else str(abs(self.__hash__()))
-        directory += '/'
-        if not os.path.exists(directory):
-            os.mkdir(directory)
-        with open(f'{directory}{document}.inp', 'w') as file:
-            file.write(str(self))
+        if directory == '':
+            with open(f'{document}.inp', 'w') as file:
+                file.write(str(self))
+        else:
+            if not os.path.exists(directory):
+                os.mkdir(directory)
+            with open(f'{directory}/{document}.inp', 'w') as file:
+                file.write(str(self))
 
     def get_value(self, wanted:list, document=None, directory:str='data', keep_output:bool=False, 
         nthreads:int=1) -> dict:

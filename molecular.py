@@ -61,7 +61,7 @@ class Molecule:
         with open(f'{directory}/{document}.out', 'r') as file:
             outstr = file.read()
         for item in wanted:
-            self.output_values.update({item: re.search(f'{item}.*', outstr)[0].replace(item, '').replace(' ', '')})
+            self.output_values.update({item: re.search('-*[0-9.]+', re.search(f'{item}.*', outstr)[0])[0]})
         if deldoc:
             os.remove(f'{directory}/{document}.inp')
         if not keep_output:
@@ -70,12 +70,17 @@ class Molecule:
         else:
             self.output = f'{directory}/{document}.out'
         return self.output_values
+
+    def optg(self, wanted:str='total_energy', directory:str='data', nthreads:int=1):
+        self._receive(optg(self))
+        return self
     
     def copy(self):
         return copy.deepcopy(self)
     
     def swap_mutate(self):
         self._receive(swap_mutate(self))
+        return self
 
     def _receive(self, molecule):
         self.basis = molecule.basis
@@ -89,9 +94,11 @@ class Molecule:
 
     def mutate_distances(self):
         self._receive(mutate_distances(self))
+        return self
     
     def mutate_angles(self):
         self._receive(mutate_angles(self))
+        return self
 
     @staticmethod
     def load(file:str, rand_range=None, label:str=None, output=None, output_values=dict()):
@@ -290,3 +297,21 @@ def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
             for parameter in keys[index1:index2]:
                 child.parameters[parameter] = donor.parameters[parameter]
     return child
+
+
+def optg(molecule:Molecule, wanted:str='total_energy', directory:str='data', nthreads:int=1) -> Molecule:
+    opt_molecule = molecule.copy()
+    opt_molecule.label += '_optg'
+    if not 'optg' in opt_molecule.settings:
+        opt_molecule.settings.append('optg')
+    if not f'{wanted} = energy' in opt_molecule.settings:
+        opt_molecule.settings.append(f'{wanted} = energy')
+    opt_molecule.get_value(wanted.upper(), keep_output=True, nthreads=nthreads)
+    with open(f'{directory}/{opt_molecule.label}.out', 'r') as file:
+        outstr = file.read()
+        for parameter in opt_molecule.parameters.keys():
+            opt_molecule.parameters[parameter] = re.search('-*[0-9]+', re.findall(fr'{{parameter}}=', outstr,
+                flags=re.I)[1])[0]
+    opt_molecule.remove('optg')
+    opt_molecule.remove(f'{wanted} = energy')
+    return opt_molecule

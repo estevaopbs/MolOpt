@@ -5,10 +5,6 @@ from molecular import *
 import multiprocessing as mp
 
 
-class Load:
-    log_dict = {0: ''}
-
-
 class Chromosome:
     def __init__(self, genes=None, fitness=None, strategy=None, method=None, Age=0):
         self.Genes = genes
@@ -26,6 +22,10 @@ class Strategies:
     def __init__(self, strategies:list, strategies_rate:list):
         self.strategies = strategies
         self.rate = strategies_rate
+
+
+class Load:
+    log_dict = {0: ''}
 
 
 class Create:
@@ -72,9 +72,11 @@ def get_fitness(genes, fitness_param, threads_per_calculation):
     return - float(genes.get_value([fitness_param], nthreads=threads_per_calculation)[fitness_param])
 
 
-def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, maxSeconds=None, time_toler=None):
+def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, fn_optg, maxSeconds, 
+    time_toler, use_optg):
     startTime = time.time()
-    bestParent = first_parent
+    if use_optg:
+        bestParent = fn_optg(first_parent)
     last_improvement_time = startTime
     yield maxSeconds is not None and time.time() - startTime > maxSeconds, bestParent
     parents = [bestParent]
@@ -83,7 +85,11 @@ def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, 
         parent = generate_parent(label=f'{n+1}_{n+1}')
         if maxSeconds is not None and time.time() - startTime > maxSeconds:
             yield True, parent
+        if time_toler is not None and time.time() - last_improvement_time > time_toler:
+            yield True, bestParent
         if parent.Fitness > bestParent.Fitness:
+            if use_optg:
+                parent = fn_optg(parent)
             yield False, parent
             last_improvement_time = time.time()
             bestParent = parent
@@ -123,6 +129,8 @@ def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, 
         parents[pindex] = child
         parent.Age = 0
         if child.Fitness > bestParent.Fitness:
+            if use_optg:
+                child = fn_optg(child)
             yield False, child
             last_improvement_time = time.time()
             bestParent = child
@@ -130,7 +138,7 @@ def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, 
 
 
 def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSize, maxSeconds, elit_size, elitism_rate,
-    max_gen, gen_toler, time_toler):
+    max_gen, gen_toler, time_toler, fn_optg, use_optg):
     startTime = time.time()
     last_improvement_time = startTime
     queue = mp.Queue(maxsize=poolSize - 1)
@@ -141,7 +149,8 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
             elitism_rate = [2 for _ in range(elit_size)]
             if sum(elitism_rate) > poolSize:
                 raise Exception('Minimal elitism exceeds pool size. Increase the pool size or reduce the elit size.')
-    bestParent = first_parent
+    if use_optg:
+        bestParent = fn_optg(first_parent)
     yield maxSeconds is not None and time.time() - startTime > maxSeconds, bestParent
     parents = [bestParent]
     historicalFitnesses = [bestParent.Fitness]
@@ -157,6 +166,8 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
     sorted_next_gen.sort(key=lambda c: c.Fitness, reverse=False)
     for parent in sorted_next_gen:     
         if parent.Fitness > bestParent.Fitness:
+            if use_optg:
+                parent = fn_optg(parent)
             yield False, parent
             bestParent = parent
             last_improvement_time = time.time()
@@ -200,6 +211,8 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
         sorted_next_gen.sort(key=lambda c: c.Fitness, reverse=False)
         for child in sorted_next_gen:
             if child.Fitness > bestParent.Fitness:
+                if use_optg:
+                    child = fn_optg(child)
                 yield False, child
                 bestParent = child
                 historicalFitnesses.append(child.Fitness)
@@ -233,7 +246,7 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
 def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int=None, pool_size:int=1, 
     max_seconds:float=None, time_tolerance:int=None, crossover_elitism=lambda x: 1, 
     mutate_after_crossover:bool=False, parallelism:bool=False, elit_size:int=0, elitism_rate:list=None, 
-    generations_tolerance:int=None, threads_per_calculation:int=1, max_gens=None, mutation_rate=1):
+    generations_tolerance:int=None, threads_per_calculation:int=1, max_gens=None, mutation_rate=1, use_optg:bool=True):
 
     start_time= time.time()
 
@@ -297,6 +310,9 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             queue.put({child_index: child})
         return child
 
+    def fn_optg(molecule:Molecule) -> Molecule:
+        return optg(molecule, fitness_param, threads_per_calculation * pool_size)
+
     def fn_generate_parent(queue=None, label:str=None):
         while True:
             try:
@@ -318,12 +334,12 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
 
     usedStrategies = []
     first_molecule.label = '0_0'
-    first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, threads_per_calculation), Load(), 
-    0)
+    first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, 
+        threads_per_calculation * pool_size), Load(), 0)
     n = 0
     if not parallelism:
         for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
-        max_seconds, time_tolerance):
+            fn_optg, max_seconds, time_tolerance, use_optg):
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
             f = (improvement.Strategy.__class__.__name__, improvement.Strategy.log_dict[improvement.Method])
@@ -335,7 +351,8 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 break
     else:
         for timedOut, improvement in get_improvement_mp(get_child, first_parent, fn_generate_parent, max_age, pool_size,
-        max_seconds, elit_size, elitism_rate, max_gens, generations_tolerance, time_tolerance):
+            max_seconds, elit_size, elitism_rate, max_gens, generations_tolerance, time_tolerance, fn_optg,
+            use_optg):
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
             f = (improvement.Strategy.__class__.__name__, improvement.Strategy.log_dict[improvement.Method])

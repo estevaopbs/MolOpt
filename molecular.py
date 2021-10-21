@@ -61,7 +61,8 @@ class Molecule:
         with open(f'{directory}/{document}.out', 'r') as file:
             outstr = file.read()
         for item in wanted:
-            self.output_values.update({item: re.search('-*[0-9.]+', re.search(f'{item}.*', outstr)[0])[0]})
+            self.output_values.update({item: re.search('-*[0-9.]+', re.search(f'{item}.*', outstr)[0]\
+                .replace(item, ''))[0]})
         if deldoc:
             os.remove(f'{directory}/{document}.inp')
         if not keep_output:
@@ -299,7 +300,7 @@ def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     return child
 
 
-def optg(molecule:Molecule, wanted:str='total_energy', directory:str='data', nthreads:int=1, 
+def optg(molecule:Molecule, wanted, directory:str='data', nthreads:int=1, 
     keep_output=False) -> Molecule:
     opt_molecule = molecule.copy()
     if molecule.label is None:
@@ -307,14 +308,14 @@ def optg(molecule:Molecule, wanted:str='total_energy', directory:str='data', nth
     opt_molecule.label += '_optg'
     if not 'optg' in opt_molecule.settings:
         opt_molecule.settings.append('optg')
-    #if not f'{wanted} = energy' in opt_molecule.settings:
-    #    opt_molecule.settings.append(f'{wanted} = energy')
-    opt_molecule.get_value('USERDEF  ENERGY', keep_output=keep_output, nthreads=nthreads)
+    if not 'total_energy = energy' in opt_molecule.settings:
+        opt_molecule.settings.append('total_energy = energy')
+    opt_molecule.get_value('TOTAL_ENERGY', keep_output=True, nthreads=nthreads)
     with open(f'{directory}/{opt_molecule.label}.out', 'r') as file:
         outstr = file.read()
         for parameter in opt_molecule.parameters.keys():
-            opt_molecule.parameters[parameter] = re.search('-*[0-9]+', re.findall(fr'{{parameter}}=', outstr,
-                flags=re.I)[1])[0]
+            opt_molecule.parameters[parameter] = re.search('-*[0-9.]+', re.findall(f'{parameter}=.*', outstr,
+                flags=re.I)[1].replace(parameter, ''))[0]
     opt_molecule.settings.remove('optg')
     opt_molecule.settings.remove(f'{wanted} = energy')
     if not keep_output:

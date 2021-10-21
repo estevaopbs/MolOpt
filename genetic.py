@@ -312,9 +312,11 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         return child
 
     def fn_optg(candidate:Chromosome) -> Chromosome:
-        new_genes = optg(candidate.Genes, fitness_param, threads_per_calculation * pool_size)
-        return Chromosome(new_genes, -float(new_genes.output_values[fitness_param]), candidate.Strategy, 
-            candidate.Method, 0)
+        new_genes = optg(candidate.Genes, fitness_param, 'data', threads_per_calculation * pool_size)
+        new_fitness = -float(new_genes.output_values['TOTAL_ENERGY'])
+        new_genes.output_values.pop('TOTAL_ENERGY')
+        new_genes.output_values.update({fitness_param: str(new_fitness)})
+        return Chromosome(new_genes, new_fitness, candidate.Strategy, candidate.Method, 0)
 
     def fn_generate_parent(queue=None, label:str=None):
         while True:

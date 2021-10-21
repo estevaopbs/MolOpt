@@ -300,7 +300,7 @@ def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     return child
 
 
-def optg(molecule:Molecule, wanted, directory:str='data', nthreads:int=1, 
+def optg(molecule:Molecule, wanted:str, directory:str='data', nthreads:int=1, 
     keep_output=False) -> Molecule:
     opt_molecule = molecule.copy()
     if molecule.label is None:
@@ -310,14 +310,14 @@ def optg(molecule:Molecule, wanted, directory:str='data', nthreads:int=1,
         opt_molecule.settings.append('optg')
     if not 'total_energy = energy' in opt_molecule.settings:
         opt_molecule.settings.append('total_energy = energy')
-    opt_molecule.get_value('TOTAL_ENERGY', keep_output=True, nthreads=nthreads)
+    opt_molecule.get_value(['TOTAL_ENERGY'], keep_output=True, nthreads=nthreads)
     with open(f'{directory}/{opt_molecule.label}.out', 'r') as file:
         outstr = file.read()
         for parameter in opt_molecule.parameters.keys():
             opt_molecule.parameters[parameter] = re.search('-*[0-9.]+', re.findall(f'{parameter}=.*', outstr,
                 flags=re.I)[1].replace(parameter, ''))[0]
     opt_molecule.settings.remove('optg')
-    opt_molecule.settings.remove(f'{wanted} = energy')
+    opt_molecule.settings.remove('total_energy = energy')
     if not keep_output:
         os.remove(f'{directory}/{opt_molecule.label}.log')
     if molecule.label is None:

@@ -246,7 +246,8 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
 def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int=None, pool_size:int=1, 
     max_seconds:float=None, time_tolerance:int=None, crossover_elitism=lambda x: 1, 
     mutate_after_crossover:bool=False, parallelism:bool=False, elit_size:int=0, elitism_rate:list=None, 
-    generations_tolerance:int=None, threads_per_calculation:int=1, max_gens=None, mutation_rate=1, use_optg:bool=True):
+    generations_tolerance:int=None, threads_per_calculation:int=1, max_gens=None, mutation_rate:int=1, 
+    use_optg:bool=True):
 
     start_time= time.time()
 
@@ -310,8 +311,10 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             queue.put({child_index: child})
         return child
 
-    def fn_optg(molecule:Molecule) -> Molecule:
-        return optg(molecule, fitness_param, threads_per_calculation * pool_size)
+    def fn_optg(candidate:Chromosome) -> Chromosome:
+        new_genes = optg(candidate.Genes, fitness_param, threads_per_calculation * pool_size)
+        return Chromosome(new_genes, -float(new_genes.output_values[fitness_param]), candidate.Strategy, 
+            candidate.Method, 0)
 
     def fn_generate_parent(queue=None, label:str=None):
         while True:

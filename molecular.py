@@ -172,8 +172,8 @@ def mutate_distances(molecule, times:int=1, label:str=None) -> Molecule:
     return new_molecule
 
 
-def random_molecule(molecule:str, basis:str, settings:list, rand_range:float,
-                    label:str=None, dist_unit:str='ang') -> Molecule:
+def random_molecule(molecule:str, basis:str, settings:list, rand_range:float, label:str=None, 
+    dist_unit:str='ang') -> Molecule:
     atoms = re.findall('[A-Z][a-z]*[1-9]*', molecule)
     geometry = [[dist_unit]]
     for atom in atoms:
@@ -299,19 +299,26 @@ def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     return child
 
 
-def optg(molecule:Molecule, wanted:str='total_energy', directory:str='data', nthreads:int=1) -> Molecule:
+def optg(molecule:Molecule, wanted:str='total_energy', directory:str='data', nthreads:int=1, 
+    keep_output=False) -> Molecule:
     opt_molecule = molecule.copy()
+    if molecule.label is None:
+        opt_molecule.label = str(opt_molecule.__hash__())
     opt_molecule.label += '_optg'
     if not 'optg' in opt_molecule.settings:
         opt_molecule.settings.append('optg')
     if not f'{wanted} = energy' in opt_molecule.settings:
         opt_molecule.settings.append(f'{wanted} = energy')
-    opt_molecule.get_value(wanted.upper(), keep_output=True, nthreads=nthreads)
+    opt_molecule.get_value(wanted.upper(), keep_output=keep_output, nthreads=nthreads)
     with open(f'{directory}/{opt_molecule.label}.out', 'r') as file:
         outstr = file.read()
         for parameter in opt_molecule.parameters.keys():
             opt_molecule.parameters[parameter] = re.search('-*[0-9]+', re.findall(fr'{{parameter}}=', outstr,
                 flags=re.I)[1])[0]
-    opt_molecule.remove('optg')
-    opt_molecule.remove(f'{wanted} = energy')
+    opt_molecule.settings.remove('optg')
+    opt_molecule.settings.remove(f'{wanted} = energy')
+    if not keep_output:
+        os.remove(f'{directory}/{opt_molecule.label}.log')
+    if molecule.label is None:
+        opt_molecule.label = None
     return opt_molecule

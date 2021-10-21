@@ -307,9 +307,9 @@ def optg(molecule:Molecule, wanted:str='total_energy', directory:str='data', nth
     opt_molecule.label += '_optg'
     if not 'optg' in opt_molecule.settings:
         opt_molecule.settings.append('optg')
-    if not f'{wanted} = energy' in opt_molecule.settings:
-        opt_molecule.settings.append(f'{wanted} = energy')
-    opt_molecule.get_value(wanted.upper(), keep_output=keep_output, nthreads=nthreads)
+    #if not f'{wanted} = energy' in opt_molecule.settings:
+    #    opt_molecule.settings.append(f'{wanted} = energy')
+    opt_molecule.get_value('USERDEF  ENERGY', keep_output=keep_output, nthreads=nthreads)
     with open(f'{directory}/{opt_molecule.label}.out', 'r') as file:
         outstr = file.read()
         for parameter in opt_molecule.parameters.keys():

@@ -300,8 +300,7 @@ def crossover_2(parent:Molecule, donor:Molecule, label:str=None) -> Molecule:
     return child
 
 
-def optg(molecule:Molecule, wanted:str, directory:str='data', nthreads:int=1, 
-    keep_output=False) -> Molecule:
+def optg(molecule:Molecule, wanted:str, directory:str='data', nthreads:int=1, keep_output=False) -> Molecule:
     opt_molecule = molecule.copy()
     if molecule.label is None:
         opt_molecule.label = str(opt_molecule.__hash__())

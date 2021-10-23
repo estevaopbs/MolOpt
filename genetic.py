@@ -316,7 +316,8 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                     donor = random.choices(sorted_candidates, crossover_elitism)[0]
                     child = Chromosome()
                     child.Strategy.append([random.choices(strategies.strategies, strategies.rate)[0]])
-                    child.Strategy[-1].append(random.choices(child.Strategy[-1][0].methods, child.Strategy[-1][0].rate)[0])
+                    child.Strategy[-1].append(random.choices(child.Strategy[-1][0].methods, 
+                        child.Strategy[-1][0].rate)[0])
                     child.Genes = strategy_lookup[child.Strategy[-1][0].strategy][child.Strategy[-1][1]]\
                         (parent.Genes, donor.Genes)
                     parent = child

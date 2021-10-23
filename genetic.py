@@ -372,7 +372,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             with open('strategies_log.txt', 'a') as slog:
                 slog.write(improvement.strategy_str)
             for ancestor in improvement.Lineage:
-                ancestor.save(f'{j}_{ancestor.label}', 'lineage')
+                ancestor.Genes.save(f'{j}_{ancestor.label}', 'lineage')
                 j += 1
             usedStrategies.append(improvement.Strategy)
             n += 1
@@ -387,7 +387,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             with open('strategies_log.txt', 'a') as slog:
                 slog.write(improvement.strategy_str)
             for ancestor in improvement.Lineage:
-                ancestor.save(f'{j}_{ancestor.label}', 'lineage')
+                ancestor.Genes.save(f'{j}_{ancestor.label}', 'lineage')
                 j += 1
             usedStrategies.append(improvement.Strategy)
             n += 1

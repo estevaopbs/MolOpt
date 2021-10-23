@@ -11,7 +11,7 @@ def test_Al10():
     pool_size = 5
     max_seconds = 3600 * 10
     time_tolerance = 3600
-    crossover_elitism = lambda x: 1
+    crossover_elitism = None
     fitness_param = '!RKS STATE 1.1 Energy'
 
     result, strategies = optimize(molecule, fitness_param, strategies, max_age, pool_size, max_seconds, time_tolerance, 
@@ -30,11 +30,11 @@ def test_Al10_mp():
     pool_size = 3
     max_seconds = 3600 * 10
     time_tolerance = 3600
-    crossover_elitism = lambda x: 1
+    crossover_elitism = None
     fitness_param = '!RKS STATE 1.1 Energy'
 
     result, strategies = optimize(molecule, fitness_param, strategies, max_age, pool_size, None, None,
-    crossover_elitism, mutate_after_crossover=True, parallelism=True, elit_size=2, elitism_rate=[1, 1, 1],
+    crossover_elitism, mutate_after_crossover=True, parallelism=True, elit_size=None, elitism_rate=None,
     generations_tolerance=None, threads_per_calculation=1, max_gens=None, mutation_rate=2)
     result.save('best_Al10_mp', directory='')
     return result, strategies

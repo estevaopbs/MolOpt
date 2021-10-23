@@ -6,12 +6,16 @@ import multiprocessing as mp
 
 
 class Chromosome:
-    def __init__(self, genes=None, fitness=None, strategy=None, method=None, Age=0):
+    def __init__(self, genes=None, fitness=None, strategy=[], Age=0):
         self.Genes = genes
         self.Fitness = fitness
         self.Strategy = strategy
-        self.Method = method
         self.Age = Age
+
+    @property
+    def strategy_str(self):
+        return str([(strategy[0].__class__.__name__, strategy[0].log_dict[strategy[1]]) for strategy in self.Strategy])\
+            [1:-1] + '\n'
 
 
 class Strategies:
@@ -250,6 +254,8 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     use_optg:bool=True):
 
     start_time= time.time()
+    if crossover_elitism is None:
+        crossover_elitism = [1 for n in range(len(pool_size))]
 
     for strategy in strategies.strategies:
         if type(strategy) is Mutate:
@@ -291,14 +297,16 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         while True:
             try:
                 parent = candidates[parent_index]
-                sorted_candidates = copy.copy(candidates)
-                sorted_candidates.sort(reverse=True, key=lambda p: p.Fitness)
-                donor = random.choices(sorted_candidates, [crossover_elitism(n) for n in\
-                    reversed(range(len(sorted_candidates)))])[0]
-                child = Chromosome()
-                child.Strategy = random.choices(strategies.strategies, strategies.rate)[0]
-                child.Method = random.choices(child.Strategy.methods, child.Strategy.rate)[0]
-                child.Genes = strategy_lookup[child.Strategy.strategy][child.Method](parent.Genes, donor.Genes)
+                for _ in range(mutation_rate):
+                    sorted_candidates = copy.copy(candidates)
+                    sorted_candidates.sort(reverse=True, key=lambda p: p.Fitness)
+                    donor = random.choices(sorted_candidates, crossover_elitism)[0]
+                    child = Chromosome()
+                    child.Strategy.append([random.choices(strategies.strategies, strategies.rate)[0]])
+                    child.Strategy[-1].append(random.choices(child.Strategy[-1][0].methods, child.Strategy[-1][0].rate)[0])
+                    child.Genes = strategy_lookup[child.Strategy[-1][0].strategy][child.Strategy[-1][1]]\
+                        (parent.Genes, donor.Genes)
+                    parent = child
                 child.Genes.label = label
                 child.Fitness = get_fitness(child.Genes, fitness_param, threads_per_calculation)
                 break
@@ -338,7 +346,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     usedStrategies = []
     first_molecule.label = '0_0'
     first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, 
-        threads_per_calculation * pool_size), Load(), 0)
+        threads_per_calculation * pool_size), [Load()], [0])
     n = 0
     if not parallelism:
         for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
@@ -358,10 +366,9 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             use_optg):
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
-            f = (improvement.Strategy.__class__.__name__, improvement.Strategy.log_dict[improvement.Method])
             with open('strategies_log.txt', 'a') as slog:
-                slog.write(f'{f[0]}, {f[1]}\n')
-            usedStrategies.append(f)
+                slog.write(improvement.strategy_str)
+            usedStrategies.append(improvement.strategy)
             n += 1
             if timedOut:
                 break

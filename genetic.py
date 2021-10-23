@@ -377,7 +377,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 islog.write(f'{improvement.strategy_str}\t{improvement.Fitness}\t{timediff}\n')
             with open('lineage_strategies.log', 'a') as lslog:
                 for ancestor in improvement.Lineage:
-                    lslog.write(f'{ancestor.strategy_str}\t{ancestor.Fitness}\t{timediff}')
+                    lslog.write(f'{ancestor.strategy_str}\t{ancestor.Fitness}\t{timediff}\n')
                     ancestor.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
                     j += 1
             usedStrategies.append(improvement.Strategy)

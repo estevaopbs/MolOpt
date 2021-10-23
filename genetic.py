@@ -18,7 +18,7 @@ class Chromosome:
     @property
     def strategy_str(self):
         return str([[strategy[0].__class__.__name__, strategy[0].log_dict[strategy[1]]] for strategy in self.Strategy])\
-            [1:-1] + '\n'
+            [1:-1]
 
 
 class Strategies:
@@ -74,9 +74,8 @@ class Crossover:
         self.rate = methods_rate
 
 
-def display(candidate, start_time):
-    time_diff = time.time() - start_time
-    print("{0}\t{1}".format((candidate.Fitness), str(time_diff)))
+def display(candidate, timediff):
+    print("{0}\t{1}".format((candidate.Fitness), str(timediff)))
 
 
 def get_fitness(genes, fitness_param, threads_per_calculation):
@@ -119,7 +118,7 @@ def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, 
             yield True, bestParent
         pindex = pindex - 1 if pindex > 0 else lastParentIndex
         parent = parents[pindex]
-        child = new_child(parents, pindex, label=f'{n}_{pindex}')
+        child = new_child(parents, pindex, label=f'{n}_{pindex}', is_parent_best=parent == bestParent)
         if parent.Fitness > child.Fitness:
             if maxAge is None:
                 continue
@@ -207,13 +206,14 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
             for pindex in range(elit_size):
                 for i in range(elitism_rate[pindex]):
                     processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, i + \
-                        sum(elitism_rate[:pindex]), f'{gen}_{i + sum(elitism_rate[:pindex])}')))
+                        sum(elitism_rate[:pindex]), f'{gen}_{i + sum(elitism_rate[:pindex])}', parent == bestParent)))
             for pindex in range(elit_size, poolSize - sum(elitism_rate) + elit_size):
                 processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, sum(elitism_rate) + pindex \
-                    - elit_size, f'{gen}_{sum(elitism_rate) + pindex - elit_size}')))
+                    - elit_size, f'{gen}_{sum(elitism_rate) + pindex - elit_size}', parent == bestParent)))
         else:
             for pindex in range(poolSize):
-                processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, pindex, f'{gen}_{pindex}')))
+                processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, pindex, f'{gen}_{pindex}',
+                    parent == bestParent)))
         for process in processes:
             process.start()
         for _ in range(poolSize):
@@ -305,7 +305,8 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         Strategies.Crossover: crossover_lookup
     }
 
-    def get_child(candidates, parent_index, queue:mp.Queue=None, child_index:int=None, label:str=None):
+    def get_child(candidates, parent_index, queue:mp.Queue=None, child_index:int=None, label:str=None, 
+        is_parent_best:bool=False):
         while True:
             try:
                 parent = candidates[parent_index]
@@ -322,7 +323,8 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 child.Genes.label = label
                 child.Fitness = get_fitness(child.Genes, fitness_param, threads_per_calculation)
                 child.Lineage = parent.Lineage
-                child.Lineage.append(parent)
+                if not is_parent_best:
+                    child.Lineage.append(parent)
                 break
             except:
                 os.remove(f'data/{child.Genes.label}.inp')
@@ -368,12 +370,16 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
             fn_optg, max_seconds, time_tolerance, use_optg):
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
-            display(improvement, start_time)
-            with open('strategies_log.txt', 'a') as slog:
-                slog.write(improvement.strategy_str)
-            for ancestor in improvement.Lineage:
-                ancestor.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
-                j += 1
+            improvement.Lineage.append(improvement)
+            timediff = time.time() - start_time
+            display(improvement, timediff)
+            with open('improvements_strategies.log', 'a') as islog:
+                islog.write(f'{improvement.strategy_str}\t{improvement.Fitness}\t{timediff}\n')
+            with open('lineage_strategies.log', 'a') as lslog:
+                for ancestor in improvement.Lineage:
+                    lslog.write(f'{ancestor.strategy_str}\t{ancestor.Fitness}\t{timediff}')
+                    ancestor.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
+                    j += 1
             usedStrategies.append(improvement.Strategy)
             n += 1
             if timedOut:
@@ -383,16 +389,21 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             max_seconds, elit_size, elitism_rate, max_gens, generations_tolerance, time_tolerance, fn_optg,
             use_optg):
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
-            display(improvement, start_time)
-            with open('strategies_log.txt', 'a') as slog:
-                slog.write(improvement.strategy_str)
-            for ancestor in improvement.Lineage:
-                ancestor.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
-                j += 1
+            improvement.Lineage.append(improvement)
+            timediff = time.time() - start_time
+            display(improvement, timediff)
+            with open('improvements_strategies.log', 'a') as islog:
+                islog.write(f'{improvement.strategy_str}\t{improvement.Fitness}\t{timediff}\n')
+            with open('lineage_strategies.log', 'a') as lslog:
+                for ancestor in improvement.Lineage:
+                    lslog.write(f'{ancestor.strategy_str}\t{ancestor.Fitness}\t{timediff}')
+                    ancestor.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
+                    j += 1
             usedStrategies.append(improvement.Strategy)
             n += 1
             if timedOut:
                 break
+    improvement.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
     with open('strategies_log.txt', 'a') as slog:
         slog.write('\n---\n\n')
     return improvement.Genes, usedStrategies

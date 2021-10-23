@@ -6,6 +6,7 @@ import copy
 
 class Molecule:
     __slots__ = ('basis', 'parameters', 'geometry', 'settings', 'rand_range', 'label', 'output_values', 'output')
+    
     def __init__(self, basis:str, geometry:list, settings:list, parameters:dict=dict(), rand_range:float=None, 
                  label:str=None, output:str=None, output_values:dict=dict()) -> None:
         self.basis = basis
@@ -126,11 +127,12 @@ class Molecule:
 
 def swap_mutate(molecule, times:int=1, label:str=None) -> Molecule:
     new_molecule = molecule.copy()
-    index0, index1, index2, index3 = 0, 0, 0, 0
-    while (index0, index1) == (index2, index3):
-        index0, index1, index2, index3 = _get_swap_indexes(new_molecule)
-    new_molecule.geometry[index0][index1], new_molecule.geometry[index2][index3] =\
-    new_molecule.geometry[index2][index3], new_molecule.geometry[index0][index1]
+    for _ in range(times):
+        index0, index1, index2, index3 = 0, 0, 0, 0
+        while (index0, index1) == (index2, index3):
+            index0, index1, index2, index3 = _get_swap_indexes(new_molecule)
+        new_molecule.geometry[index0][index1], new_molecule.geometry[index2][index3] =\
+        new_molecule.geometry[index2][index3], new_molecule.geometry[index0][index1]
     new_molecule.output = None
     new_molecule.output_values = dict()
     new_molecule.label = label
@@ -151,23 +153,27 @@ def _get_swap_indexes(new_molecule):
 
 def mutate_angles(molecule, times:int=1, label:str=None) -> Molecule:
     new_molecule = molecule.copy()
-    index0 = random.choice(range(3, len(new_molecule.geometry)))
-    index1 = random.choice(range(4, len(new_molecule.geometry[index0]) + 1, 2))
-    if new_molecule.geometry[index0][index1].replace('.', '').isdigit():
-        new_molecule.geometry[index0][index1] = str(random.uniform(0, 360))
-    else:
-        new_molecule.parameters[new_molecule.geometry[index0][index1]] = str(random.uniform(0, 360))
+    for _ in range(times):
+        index0 = random.choice(range(3, len(new_molecule.geometry)))
+        index1 = random.choice(range(4, len(new_molecule.geometry[index0]) + 1, 2))
+        if new_molecule.geometry[index0][index1].replace('.', '').isdigit():
+            new_molecule.geometry[index0][index1] = str(random.uniform(0, 360))
+        else:
+            new_molecule.parameters[new_molecule.geometry[index0][index1]] = str(random.uniform(0, 360))
+    new_molecule.output = None
+    new_molecule.output_values = dict()
     new_molecule.label = label
     return new_molecule
 
 
 def mutate_distances(molecule, times:int=1, label:str=None) -> Molecule:
     new_molecule = molecule.copy()
-    index0 = random.choice(range(2, len(new_molecule.geometry)))
-    if new_molecule.geometry[index0][2].replace('.', '').isdigit():
-        new_molecule.geometry[index0][2] = str(random.uniform(0, new_molecule.rand_range))
-    else:
-        new_molecule.parameters[new_molecule.geometry[index0][2]] = str(random.uniform(0, new_molecule.rand_range))
+    for _ in range(times):
+        index0 = random.choice(range(2, len(new_molecule.geometry)))
+        if new_molecule.geometry[index0][2].replace('.', '').isdigit():
+            new_molecule.geometry[index0][2] = str(random.uniform(0, new_molecule.rand_range))
+        else:
+            new_molecule.parameters[new_molecule.geometry[index0][2]] = str(random.uniform(0, new_molecule.rand_range))
     new_molecule.output = None
     new_molecule.output_values = dict()
     new_molecule.label = label

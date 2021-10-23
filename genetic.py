@@ -6,11 +6,14 @@ import multiprocessing as mp
 
 
 class Chromosome:
-    def __init__(self, genes=None, fitness=None, strategy=[], Age=0):
+    __slots__ = ('Genes', 'Fitness', 'Strategy', 'Age', 'Lineage')
+
+    def __init__(self, genes=None, fitness=None, strategy=[], Age=0, Lineage=[]):
         self.Genes = genes
         self.Fitness = fitness
         self.Strategy = strategy
         self.Age = Age
+        self.Lineage = Lineage
 
     @property
     def strategy_str(self):
@@ -22,6 +25,7 @@ class Strategies:
     Create = 0
     Mutate = 1
     Crossover = 2
+    __slots__ = ('strategies', 'rate')
 
     def __init__(self, strategies:list, strategies_rate:list):
         self.strategies = strategies
@@ -37,6 +41,7 @@ class Create:
     mutate_first = 1
     strategy = 0
     log_dict = {0: 'randomize', 1: 'mutate_first'}
+    __slots__ = ('methods', 'rate')
 
     def __init__(self, methods:list, methods_rate:list):
         self.methods = methods
@@ -49,7 +54,8 @@ class Mutate:
     mutate_distances = 2
     strategy = 1
     log_dict = {0: 'swap_mutate', 1: 'mutate_angles', 2: 'mutate_distances'}
-
+    __slots__ = ('methods', 'rate')
+    
     def __init__(self, methods:list, methods_rate:list):
         self.methods = methods
         self.rate = methods_rate
@@ -61,6 +67,7 @@ class Crossover:
     crossover_2 = 2
     strategy = 2
     log_dict = {0: 'crossover_n', 1: 'crossover_1', 2: 'crossover_2'}
+    __slots__ = ('methods', 'rate')
 
     def __init__(self, methods:list, methods_rate:list):
         self.methods = methods
@@ -153,9 +160,9 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
             elitism_rate = [2 for _ in range(elit_size)]
             if sum(elitism_rate) > poolSize:
                 raise Exception('Minimal elitism exceeds pool size. Increase the pool size or reduce the elit size.')
-    if use_optg:
-        bestParent = fn_optg(first_parent)
+    bestParent = fn_optg(first_parent) if use_optg else first_parent
     yield maxSeconds is not None and time.time() - startTime > maxSeconds, bestParent
+    bestParent.Lineage = []
     parents = [bestParent]
     historicalFitnesses = [bestParent.Fitness]
     for n in range(poolSize - 1):
@@ -174,6 +181,7 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
                 parent = fn_optg(parent)
             yield False, parent
             bestParent = parent
+            bestParent.Lineage = []
             last_improvement_time = time.time()
             historicalFitnesses.append(parent.Fitness)
     parents.sort(key=lambda p: p.Fitness, reverse=True)
@@ -219,6 +227,7 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
                     child = fn_optg(child)
                 yield False, child
                 bestParent = child
+                bestParent.Lineage = []
                 historicalFitnesses.append(child.Fitness)
                 last_improvement_gen = gen
                 last_improvement_time = time.time()
@@ -309,6 +318,8 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                     parent = child
                 child.Genes.label = label
                 child.Fitness = get_fitness(child.Genes, fitness_param, threads_per_calculation)
+                child.Lineage = parent.Lineage
+                child.Lineage.append(parent)
                 break
             except:
                 os.remove(f'data/{child.Genes.label}.inp')
@@ -322,7 +333,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     def fn_optg(candidate:Chromosome) -> Chromosome:
         new_genes = optg(candidate.Genes, fitness_param, 'data', threads_per_calculation * pool_size)
         new_fitness = -float(new_genes.output_values[fitness_param])
-        return Chromosome(new_genes, new_fitness, candidate.Strategy, 0)
+        return Chromosome(new_genes, new_fitness, candidate.Strategy, 0, [candidate.Lineage] + [candidate])
 
     def fn_generate_parent(queue=None, label:str=None):
         while True:
@@ -346,7 +357,11 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     first_molecule.label = '0_0'
     first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, 
         threads_per_calculation * pool_size), [[Load(), 0]])
+    if not os.path.exists('lineage'):
+        os.mkdir('lineage')
+    first_molecule.save('0_0_0', 'lineage')
     n = 0
+    j = 0
     if not parallelism:
         for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
             fn_optg, max_seconds, time_tolerance, use_optg):
@@ -354,6 +369,9 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             display(improvement, start_time)
             with open('strategies_log.txt', 'a') as slog:
                 slog.write(improvement.strategy_str)
+            for ancestor in improvement.Lineage:
+                j += 1
+                ancestor.save(f'{j}_{ancestor.label}', 'lineage') 
             usedStrategies.append(improvement.Strategy)
             n += 1
             if timedOut:
@@ -366,6 +384,9 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             display(improvement, start_time)
             with open('strategies_log.txt', 'a') as slog:
                 slog.write(improvement.strategy_str)
+            for ancestor in improvement.Lineage:
+                j += 1
+                ancestor.save(f'{j}_{ancestor.label}', 'lineage') 
             usedStrategies.append(improvement.Strategy)
             n += 1
             if timedOut:

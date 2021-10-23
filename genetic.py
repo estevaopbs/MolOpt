@@ -14,7 +14,7 @@ class Chromosome:
 
     @property
     def strategy_str(self):
-        return str([(strategy[0].__class__.__name__, strategy[0].log_dict[strategy[1]]) for strategy in self.Strategy])\
+        return str([[strategy[0].__class__.__name__, strategy[0].log_dict[strategy[1]]] for strategy in self.Strategy])\
             [1:-1] + '\n'
 
 
@@ -255,7 +255,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
 
     start_time= time.time()
     if crossover_elitism is None:
-        crossover_elitism = [1 for n in range(len(pool_size))]
+        crossover_elitism = [1 for _ in range(pool_size)]
 
     for strategy in strategies.strategies:
         if type(strategy) is Mutate:
@@ -322,15 +322,14 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     def fn_optg(candidate:Chromosome) -> Chromosome:
         new_genes = optg(candidate.Genes, fitness_param, 'data', threads_per_calculation * pool_size)
         new_fitness = -float(new_genes.output_values[fitness_param])
-        return Chromosome(new_genes, new_fitness, candidate.Strategy, candidate.Method, 0)
+        return Chromosome(new_genes, new_fitness, candidate.Strategy, 0)
 
     def fn_generate_parent(queue=None, label:str=None):
         while True:
             try:
                 parent = Chromosome()
-                parent.Strategy = create_methods
-                parent.Method = random.choices(create_methods.methods, create_methods.rate)[0]
-                parent.Genes = create_lookup[parent.Method](first_molecule)
+                parent.Strategy = [create_methods, random.choices(create_methods.methods, create_methods.rate)[0]]
+                parent.Genes = create_lookup[parent.Strategy[1]](first_molecule)
                 parent.Genes.label = label
                 parent.Fitness = get_fitness(parent.Genes, fitness_param, threads_per_calculation)
                 break
@@ -346,17 +345,16 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     usedStrategies = []
     first_molecule.label = '0_0'
     first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, 
-        threads_per_calculation * pool_size), [Load()], [0])
+        threads_per_calculation * pool_size), [[Load(), 0]])
     n = 0
     if not parallelism:
         for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
             fn_optg, max_seconds, time_tolerance, use_optg):
             improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
             display(improvement, start_time)
-            f = (improvement.Strategy.__class__.__name__, improvement.Strategy.log_dict[improvement.Method])
             with open('strategies_log.txt', 'a') as slog:
-                slog.write(f'{f[0]}, {f[1]}\n')
-            usedStrategies.append(f)
+                slog.write(improvement.strategy_str)
+            usedStrategies.append(improvement.Strategy)
             n += 1
             if timedOut:
                 break
@@ -368,7 +366,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             display(improvement, start_time)
             with open('strategies_log.txt', 'a') as slog:
                 slog.write(improvement.strategy_str)
-            usedStrategies.append(improvement.strategy)
+            usedStrategies.append(improvement.Strategy)
             n += 1
             if timedOut:
                 break

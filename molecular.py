@@ -312,11 +312,11 @@ def optg(molecule:Molecule, wanted:str, directory:str='data', nthreads:int=1, ke
         opt_molecule.settings.append('total_energy = energy')
     opt_molecule.output_values.update({wanted: opt_molecule.get_value(['TOTAL_ENERGY'], keep_output=True, 
         nthreads=nthreads, update_self=False)['TOTAL_ENERGY']})
-    #with open(f'{directory}/{opt_molecule.label}.out', 'r') as file:
-    #    outstr = file.read()
-    #    for parameter in opt_molecule.parameters.keys():
-    #        opt_molecule.parameters[parameter] = re.search('-*[0-9.]+', re.findall(f'{parameter}=.*', outstr,
-    #           flags=re.I)[1].replace(parameter, ''))[0]
+    with open(f'{directory}/{opt_molecule.label}.out', 'r') as file:
+        outstr = file.read()
+        for parameter in opt_molecule.parameters.keys():
+            opt_molecule.parameters[parameter] = re.search('-*[0-9.]+', re.sub(parameter, '', 
+                re.findall(f'{parameter}=.*', outstr, flags=re.I)[1], flags=re.I))[0]
     opt_molecule.settings.remove('optg')
     opt_molecule.settings.remove('total_energy = energy')
     if not keep_output:

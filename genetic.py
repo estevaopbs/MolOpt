@@ -90,6 +90,7 @@ def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, 
         bestParent = fn_optg(first_parent)
     last_improvement_time = startTime
     yield maxSeconds is not None and time.time() - startTime > maxSeconds, bestParent
+    bestParent.Lineage = []
     parents = [bestParent]
     historicalFitnesses = [bestParent.Fitness]
     for n in range(poolSize - 1):
@@ -104,6 +105,7 @@ def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, 
             yield False, parent
             last_improvement_time = time.time()
             bestParent = parent
+            bestParent.Lineage = []
             historicalFitnesses.append(parent.Fitness)
         parents.append(parent)
     lastParentIndex = poolSize - 1
@@ -145,6 +147,7 @@ def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, 
             yield False, child
             last_improvement_time = time.time()
             bestParent = child
+            bestParent.Lineage = []
             historicalFitnesses.append(child.Fitness)
 
 
@@ -333,7 +336,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     def fn_optg(candidate:Chromosome) -> Chromosome:
         new_genes = optg(candidate.Genes, fitness_param, 'data', threads_per_calculation * pool_size)
         new_fitness = -float(new_genes.output_values[fitness_param])
-        return Chromosome(new_genes, new_fitness, candidate.Strategy, 0, [candidate.Lineage] + [candidate])
+        return Chromosome(new_genes, new_fitness, candidate.Strategy, 0, candidate.Lineage + [candidate])
 
     def fn_generate_parent(queue=None, label:str=None):
         while True:
@@ -359,7 +362,6 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         threads_per_calculation * pool_size), [[Load(), 0]])
     if not os.path.exists('lineage'):
         os.mkdir('lineage')
-    first_molecule.save('0_0_0', 'lineage')
     n = 0
     j = 0
     if not parallelism:
@@ -370,8 +372,8 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             with open('strategies_log.txt', 'a') as slog:
                 slog.write(improvement.strategy_str)
             for ancestor in improvement.Lineage:
+                ancestor.save(f'{j}_{ancestor.label}', 'lineage')
                 j += 1
-                ancestor.save(f'{j}_{ancestor.label}', 'lineage') 
             usedStrategies.append(improvement.Strategy)
             n += 1
             if timedOut:
@@ -385,8 +387,8 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
             with open('strategies_log.txt', 'a') as slog:
                 slog.write(improvement.strategy_str)
             for ancestor in improvement.Lineage:
+                ancestor.save(f'{j}_{ancestor.label}', 'lineage')
                 j += 1
-                ancestor.save(f'{j}_{ancestor.label}', 'lineage') 
             usedStrategies.append(improvement.Strategy)
             n += 1
             if timedOut:

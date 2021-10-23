@@ -50,9 +50,10 @@ class Molecule:
                 file.write(str(self))
 
     def get_value(self, wanted:list, document=None, directory:str='data', keep_output:bool=False, 
-        nthreads:int=1) -> dict:
+        nthreads:int=1, update_self:bool=True) -> dict:
         document = document if document is not None else self.label if self.label is not None else str(self.__hash__())
         deldoc = False
+        output_dictionary = self.output_values if update_self else dict()
         if not os.path.exists(f'{directory}/{document}.out'):
             if not os.path.exists(f'{directory}/{document}.inp'):
                 self.save(document, directory)
@@ -61,7 +62,7 @@ class Molecule:
         with open(f'{directory}/{document}.out', 'r') as file:
             outstr = file.read()
         for item in wanted:
-            self.output_values.update({item: re.search('-*[0-9.]+', re.search(f'{item}.*', outstr)[0]\
+            output_dictionary.update({item: re.search('-*[0-9.]+', re.search(f'{item}.*', outstr)[0]\
                 .replace(item, ''))[0]})
         if deldoc:
             os.remove(f'{directory}/{document}.inp')
@@ -70,7 +71,7 @@ class Molecule:
             os.remove(f'{directory}/{document}.out')
         else:
             self.output = f'{directory}/{document}.out'
-        return self.output_values
+        return output_dictionary
 
     def optg(self, wanted:str='total_energy', directory:str='data', nthreads:int=1):
         self._receive(optg(self))
@@ -309,16 +310,21 @@ def optg(molecule:Molecule, wanted:str, directory:str='data', nthreads:int=1, ke
         opt_molecule.settings.append('optg')
     if not 'total_energy = energy' in opt_molecule.settings:
         opt_molecule.settings.append('total_energy = energy')
-    opt_molecule.get_value(['TOTAL_ENERGY'], keep_output=True, nthreads=nthreads)
-    with open(f'{directory}/{opt_molecule.label}.out', 'r') as file:
-        outstr = file.read()
-        for parameter in opt_molecule.parameters.keys():
-            opt_molecule.parameters[parameter] = re.search('-*[0-9.]+', re.findall(f'{parameter}=.*', outstr,
-                flags=re.I)[1].replace(parameter, ''))[0]
+    opt_molecule.output_values.update({wanted: opt_molecule.get_value(['TOTAL_ENERGY'], keep_output=True, 
+        nthreads=nthreads, update_self=False)['TOTAL_ENERGY']})
+    #with open(f'{directory}/{opt_molecule.label}.out', 'r') as file:
+    #    outstr = file.read()
+    #    for parameter in opt_molecule.parameters.keys():
+    #        opt_molecule.parameters[parameter] = re.search('-*[0-9.]+', re.findall(f'{parameter}=.*', outstr,
+    #           flags=re.I)[1].replace(parameter, ''))[0]
     opt_molecule.settings.remove('optg')
     opt_molecule.settings.remove('total_energy = energy')
     if not keep_output:
         os.remove(f'{directory}/{opt_molecule.label}.log')
+        os.remove(f'{directory}/{opt_molecule.label}.xml')
+        os.remove(f'{directory}/{opt_molecule.label}.out')
+    else:
+        opt_molecule.output = f'{directory}/{opt_molecule.label}.out'
     if molecule.label is None:
         opt_molecule.label = None
     return opt_molecule

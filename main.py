@@ -27,7 +27,7 @@ def test_Al10_mp():
     create_methods = Create([Create.randomize, Create.mutate_first], [1, 1])
     strategies = Strategies([create_methods, mutate_methods, crossover_methods], [0, 1, 1])
     max_age = 20
-    pool_size = 3
+    pool_size = 16
     max_seconds = 3600 * 10
     time_tolerance = 3600
     crossover_elitism = None

@@ -18,7 +18,7 @@ class Chromosome:
     @property
     def strategy_str(self):
         return str([[strategy[0].__class__.__name__, strategy[0].log_dict[strategy[1]]] for strategy in self.Strategy])\
-            [1:-1].repace("'", "")
+            [1:-1].replace("'", "")
 
 
 class Strategies:

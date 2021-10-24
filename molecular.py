@@ -74,8 +74,8 @@ class Molecule:
             self.output = f'{directory}/{document}.out'
         return output_dictionary
 
-    def optg(self, wanted:str='total_energy', directory:str='data', nthreads:int=1):
-        self._receive(optg(self))
+    def optg(self, wanted, directory:str='data', nthreads:int=1, keep_output=False):
+        self._receive(optg(self, wanted, directory, nthreads, keep_output))
         return self
     
     def copy(self):

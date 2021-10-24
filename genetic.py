@@ -268,6 +268,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     use_optg:bool=True):
 
     start_time= time.time()
+    optg_threads = threads_per_calculation if not parallelism else threads_per_calculation * pool_size
     if crossover_elitism is None:
         crossover_elitism = [1 for _ in range(pool_size)]
 
@@ -339,7 +340,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         return child
 
     def fn_optg(candidate:Chromosome) -> Chromosome:
-        new_genes = optg(candidate.Genes, fitness_param, 'data', threads_per_calculation * pool_size)
+        new_genes = optg(candidate.Genes, fitness_param, 'data', optg_threads)
         new_fitness = -float(new_genes.output_values[fitness_param])
         return Chromosome(new_genes, new_fitness, candidate.Strategy + [[OPTG(), 0]], 0, 
             candidate.Lineage + [candidate])

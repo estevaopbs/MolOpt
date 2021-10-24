@@ -8,7 +8,7 @@ class Molecule:
     __slots__ = ('basis', 'parameters', 'geometry', 'settings', 'rand_range', 'label', 'output_values', 'output')
     
     def __init__(self, basis:str, geometry:list, settings:list, parameters:dict=dict(), rand_range:float=None, 
-                 label:str=None, output:str=None, output_values:dict=dict()) -> None:
+        label:str=None, output:str=None, output_values:dict=dict()) -> None:
         self.basis = basis
         self.parameters = parameters
         self.geometry = geometry

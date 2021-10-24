@@ -89,9 +89,7 @@ def get_fitness(genes, fitness_param, threads_per_calculation):
 def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, fn_optg, maxSeconds, 
     time_toler, use_optg):
     startTime = time.time()
-    if use_optg:
-        bestParent = fn_optg(first_parent)
-    last_improvement_time = startTime
+    bestParent = fn_optg(first_parent) if use_optg else first_parent
     yield maxSeconds is not None and time.time() - startTime > maxSeconds, bestParent
     bestParent.Lineage = []
     parents = [bestParent]

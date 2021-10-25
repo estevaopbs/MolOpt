@@ -324,15 +324,11 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                         (parent.Genes, donor.Genes)
                     parent = child
                     if type(child.Strategy[-1][0]) == Crossover:
-                        if donor.Lineage is not None:
-                            child.Lineage += donor.Lineage
+                        child.Lineage += donor.Lineage
                         child.Lineage.append(donor)
-                        donor.Lineage = None
                 child.Genes.label = label
                 child.Fitness = get_fitness(child.Genes, fitness_param, threads_per_calculation)
-                if parent.Lineage is not None:
-                    child.Lineage = parent.Lineage
-                parent.Lineage = None
+                child.Lineage = parent.Lineage
                 child.Lineage.append(parent)
                 break
             except:

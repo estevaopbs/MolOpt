@@ -350,7 +350,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         while True:
             try:
                 parent = Chromosome()
-                parent.Strategy = [create_methods, random.choices(create_methods.methods, create_methods.rate)[0]]
+                parent.Strategy = [[create_methods, random.choices(create_methods.methods, create_methods.rate)[0]]]
                 parent.Genes = create_lookup[parent.Strategy[1]](first_molecule)
                 parent.Genes.label = label
                 parent.Fitness = get_fitness(parent.Genes, fitness_param, threads_per_calculation)

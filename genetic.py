@@ -120,7 +120,7 @@ def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, 
             yield True, bestParent
         pindex = pindex - 1 if pindex > 0 else lastParentIndex
         parent = parents[pindex]
-        child = new_child(parents, pindex, label=f'{n}_{pindex}', is_parent_best=parent == bestParent)
+        child = new_child(parents, pindex, label=f'{n}_{pindex}')
         if parent.Fitness > child.Fitness:
             if maxAge is None:
                 continue
@@ -208,14 +208,13 @@ def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSiz
             for pindex in range(elit_size):
                 for i in range(elitism_rate[pindex]):
                     processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, i + \
-                        sum(elitism_rate[:pindex]), f'{gen}_{i + sum(elitism_rate[:pindex])}', parent == bestParent)))
+                        sum(elitism_rate[:pindex]), f'{gen}_{i + sum(elitism_rate[:pindex])}')))
             for pindex in range(elit_size, poolSize - sum(elitism_rate) + elit_size):
                 processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, sum(elitism_rate) + pindex \
-                    - elit_size, f'{gen}_{sum(elitism_rate) + pindex - elit_size}', parent == bestParent)))
+                    - elit_size, f'{gen}_{sum(elitism_rate) + pindex - elit_size}')))
         else:
             for pindex in range(poolSize):
-                processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, pindex, f'{gen}_{pindex}',
-                    parent == bestParent)))
+                processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, pindex, f'{gen}_{pindex}')))
         for process in processes:
             process.start()
         for _ in range(poolSize):
@@ -268,6 +267,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     use_optg:bool=True):
 
     start_time= time.time()
+    lineage_ids = []
     optg_threads = threads_per_calculation if not parallelism else threads_per_calculation * pool_size
     if crossover_elitism is None:
         crossover_elitism = [1 for _ in range(pool_size)]
@@ -308,8 +308,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
         Strategies.Crossover: crossover_lookup
     }
 
-    def get_child(candidates, parent_index, queue:mp.Queue=None, child_index:int=None, label:str=None, 
-        is_parent_best:bool=False):
+    def get_child(candidates, parent_index, queue:mp.Queue=None, child_index:int=None, label:str=None):
         while True:
             try:
                 parent = candidates[parent_index]
@@ -324,11 +323,14 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                     child.Genes = strategy_lookup[child.Strategy[-1][0].strategy][child.Strategy[-1][1]]\
                         (parent.Genes, donor.Genes)
                     parent = child
+                    if type(child.Strategy[-1][0]) == Crossover:
+                        child.Lineage += donor.Lineage
+                        donor.Lineage = None
                 child.Genes.label = label
                 child.Fitness = get_fitness(child.Genes, fitness_param, threads_per_calculation)
                 child.Lineage = parent.Lineage
-                if not is_parent_best:
-                    child.Lineage.append(parent)
+                parent.Lineage = None
+                child.Lineage.append(parent)
                 break
             except:
                 os.remove(f'data/{child.Genes.label}.inp')
@@ -382,9 +384,11 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 islog.write(f'{improvement.strategy_str}\t{improvement.Fitness}\t{timediff}\n')
             with open('lineage_strategies.log', 'a') as lslog:
                 for ancestor in improvement.Lineage:
-                    lslog.write(f'{ancestor.strategy_str}\t{ancestor.Fitness}\t{timediff}\n')
-                    ancestor.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
-                    j += 1
+                    if not ancestor.Genes.label in lineage_ids:
+                        lineage_ids.append(ancestor.Genes.label)
+                        lslog.write(f'{ancestor.strategy_str}\t{ancestor.Fitness}\t{timediff}\n')
+                        ancestor.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
+                        j += 1
             usedStrategies.append(improvement.Strategy)
             n += 1
             if timedOut:
@@ -401,9 +405,11 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 islog.write(f'{improvement.strategy_str}\t{improvement.Fitness}\t{timediff}\n')
             with open('lineage_strategies.log', 'a') as lslog:
                 for ancestor in improvement.Lineage:
-                    lslog.write(f'{ancestor.strategy_str}\t{ancestor.Fitness}\t{timediff}\n')
-                    ancestor.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
-                    j += 1
+                    if not ancestor.Genes.label in lineage_ids:
+                        lineage_ids.append(ancestor.Genes.label)
+                        lslog.write(f'{ancestor.strategy_str}\t{ancestor.Fitness}\t{timediff}\n')
+                        ancestor.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
+                        j += 1
             usedStrategies.append(improvement.Strategy)
             n += 1
             if timedOut:

@@ -330,6 +330,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
                 child.Fitness = get_fitness(child.Genes, fitness_param, threads_per_calculation)
                 child.Lineage = parent.Lineage
                 child.Lineage.append(parent)
+                child.Lineage = [ancestor for ancestor in child.Lineage if ancestor.Genes.label not in lineage_ids]
                 break
             except:
                 os.remove(f'data/{child.Genes.label}.inp')

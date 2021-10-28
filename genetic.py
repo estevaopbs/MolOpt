@@ -264,7 +264,7 @@ def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int
     max_seconds:float=None, time_tolerance:int=None, crossover_elitism=lambda x: 1, 
     mutate_after_crossover:bool=False, parallelism:bool=False, elit_size:int=0, elitism_rate:list=None, 
     generations_tolerance:int=None, threads_per_calculation:int=1, max_gens=None, mutation_rate:int=1, 
-    use_optg:bool=True):
+    use_optg:bool=False):
 
     start_time= time.time()
     lineage_ids = []

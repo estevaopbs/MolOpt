@@ -601,7 +601,7 @@ def optg(molecule: Molecule, wanted_energy: str, directory: str = 'data', nthrea
     :param nthreads: Number of threads useds in Molpro calculation, defaults to 1
     :type nthreads: int, optional
     :param keep_output: If its True, the output will be kept and it's name will be put in [self.output], else it will be 
-    deleted after be read. defaults to False
+        deleted after be read. defaults to False
     :type keep_output: bool, optional
     :return: Optmized molecule
     :rtype: Molecule

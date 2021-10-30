@@ -155,8 +155,7 @@ class Genetic(ABC):
                 parent = candidates[parent_index]
                 for _ in range(self.freedom_rate):
                     donor = random.choices(sorted_candidates, self.crossover_elitism)[0]
-                    child = Chromosome()
-                    child.genes = random.choices(self.strategies.strategies, self.strategies.rate)[0]\
+                    child = random.choices(self.strategies.strategies, self.strategies.rate)[0]\
                         (parent, donor, self.mutate_after_crossover, self.mutate_methods, self.first_parent)
                     parent = child
                 child.label = label

@@ -158,11 +158,11 @@ class Genetic(ABC):
                     child = random.choices(self.strategies.strategies, self.strategies.rate)[0]\
                         (parent, donor, self.mutate_after_crossover, self.mutate_methods, self.first_parent)
                     parent = child
+                child.label = label
                 child.fitness = self.get_fitness(child)
                 child.lineage += parent.lineage + [parent]
                 child.lineage = list(set(child.lineage))
                 child.lineage = [ancestor for ancestor in child.lineage if ancestor.label not in self.lineage_ids]
-                child.label = label
                 break
             except:
                 self.catch(child)
@@ -185,8 +185,8 @@ class Genetic(ABC):
         while True:
             try:
                 parent = self.create_methods(first_parent=self.first_parent)
-                parent.fitness = self.get_fitness(parent)
                 parent.label = label
+                parent.fitness = self.get_fitness(parent)
                 break
             except:
                 self.catch(parent)

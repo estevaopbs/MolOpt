@@ -204,7 +204,7 @@ class Genetic(ABC):
         j = 0
         if not os.path.exists('lineage'):
             os.mkdir('lineage')
-        for timedOut, improvement in opt_func():
+        for timed_out, improvement in opt_func():
             self.save(improvement, f'{n}_{improvement.label}', 'improvements')
             improvement.lineage.append(improvement)
             timediff = time.time() - self.start_time
@@ -216,10 +216,10 @@ class Genetic(ABC):
                     if not ancestor.label in self.lineage_ids:
                         self.lineage_ids.append(ancestor.label)
                         lslog.write(f'{ancestor.strategy_str}\t{ancestor.fitness}\t{timediff}\n')
-                        self.save(ancestor, f'{j}_{ancestor.label}', 'lineage')
+                        self.save(ancestor.genes, f'{j}_{ancestor.label}', 'lineage')
                         j += 1
             n += 1
-            if timedOut:
+            if timed_out:
                 break
         improvement.genes.save(f'{j}_{ancestor.label}', 'lineage')
         with open('strategies_log.txt', 'a') as slog:
@@ -227,7 +227,7 @@ class Genetic(ABC):
         return improvement.genes
 
     def __get_improvement(self):
-        best_parent = self.local_optimization(self.load())
+        best_parent = self.__local_optimization(self.load())
         yield self.max_seconds is not None and time.time() - self.start_time > self.max_seconds, best_parent
         best_parent.lineage = []
         parents = [best_parent]
@@ -239,7 +239,7 @@ class Genetic(ABC):
             if self.time_toler is not None and time.time() - last_improvement_time > self.time_toler:
                 yield True, best_parent
             if parent.fitness > best_parent.fitness:
-                parent = self.local_optimization(parent)
+                parent = self.__local_optimization(parent)
                 yield False, parent
                 last_improvement_time = time.time()
                 best_parent = parent
@@ -280,7 +280,7 @@ class Genetic(ABC):
             parents[pindex] = child
             parent.age = 0
             if child.fitness > best_parent.fitness:
-                child = self.local_optimization(child)
+                child = self.__local_optimization(child)
                 yield False, child
                 last_improvement_time = time.time()
                 best_parent = child

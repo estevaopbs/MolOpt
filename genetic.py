@@ -117,7 +117,7 @@ class Genetic(ABC):
         self.time_toler = time_toler
         self.gens_toler = gens_toler
         self.max_gens = max_gens
-        self.save_directory = f"{datetime.now().strftime('%Y_%m_%d %H:%M')}" if save_directory == None \
+        self.save_directory = f"{datetime.now().strftime('%Y_%m_%d_%H:%M')}" if save_directory == None \
             else save_directory
         self.start_time = None
         self.first_parent = None

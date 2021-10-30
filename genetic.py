@@ -65,8 +65,7 @@ class Crossover:
 
 class Genetic(ABC):
     def __init__(self, first_genes, fitness_param, strategies, max_age, pool_size, mutate_after_crossover, 
-        crossover_elitism, elitism_rate, freedom_rate, parallelism, threads_per_calc, max_seconds, time_toler,
-        gens_toler, max_gens):
+        crossover_elitism, elitism_rate, freedom_rate, parallelism, max_seconds, time_toler, gens_toler, max_gens):
         self.first_genes = first_genes
         self.fitness_param = fitness_param
         self.strategies = strategies
@@ -77,7 +76,6 @@ class Genetic(ABC):
         self.elitism_rate = elitism_rate
         self.freedom_rate = freedom_rate
         self.parallelism = parallelism
-        self.threads_per_calc = threads_per_calc
         self.max_seconds = max_seconds
         self.time_toler = time_toler
         self.gens_toler = gens_toler
@@ -95,6 +93,10 @@ class Genetic(ABC):
         
     @abstractmethod
     def get_fitness(self, candidate):
+        pass
+
+    @abstractmethod
+    def save(self, candidate, file_name, directory):
         pass
 
     @staticmethod
@@ -189,7 +191,7 @@ class Genetic(ABC):
                     if not ancestor.label in self.lineage_ids:
                         self.lineage_ids.append(ancestor.label)
                         lslog.write(f'{ancestor.strategy_str}\t{ancestor.fitness}\t{timediff}\n')
-                        ancestor.genes.save(f'{j}_{ancestor.label}', 'lineage')
+                        self.save(ancestor, f'{j}_{ancestor.label}', 'lineage')
                         j += 1
             n += 1
             if timedOut:

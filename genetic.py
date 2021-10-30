@@ -205,7 +205,7 @@ class Genetic(ABC):
         if not os.path.exists('lineage'):
             os.mkdir('lineage')
         for timedOut, improvement in opt_func():
-            improvement.genes.save(f'{n}_{improvement.label}', 'improvements')
+            self.save(improvement, f'{n}_{improvement.label}', 'improvements')
             improvement.lineage.append(improvement)
             timediff = time.time() - self.start_time
             self.display(improvement, timediff)

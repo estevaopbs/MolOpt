@@ -173,7 +173,7 @@ class Genetic(ABC):
 
     def __local_optimization(self, candidate:Chromosome) -> Chromosome:
         if not self.local_opt:
-            return candidate.genes
+            return candidate
         new_genes = self.local_optimize(candidate)
         new_fitness = self.get_fitness(candidate)
         return Chromosome(new_genes, new_fitness, candidate.strategy + [self.local_optimize], 0, 

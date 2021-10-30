@@ -1,50 +1,46 @@
 import time
 from bisect import bisect_left
 from math import exp
-from molecular import *
 import multiprocessing as mp
+from typing import Union, Any
+from abc import ABC, abstractmethod
+import random
+import copy
+import os
 
+"""Problem-specific genetic algorithm to deal with molecular geometry optimization using Molpro and molecular module
+molecular
+"""
 
 class Chromosome:
-    __slots__ = ('Genes', 'Fitness', 'Strategy', 'Age', 'Lineage')
+    """Object that represents the candidates
+    """    
+    Chromosome = Any 
+    __slots__ = ('genes', 'fitness', 'strategy', 'age', 'lineage')
 
-    def __init__(self, genes=None, fitness=None, strategy=[], Age=0, Lineage=[]):
-        self.Genes = genes
-        self.Fitness = fitness
-        self.Strategy = strategy
-        self.Age = Age
-        self.Lineage = Lineage
+    def __init__(self, genes: Any = None, fitness: Union[float, int] = None, strategy: list = [], 
+        age: int = 0, lineage: list[Chromosome]=[], label: str = None): 
+        self.genes = genes
+        self.fitness = fitness
+        self.strategy = strategy
+        self.age = age
+        self.lineage = lineage
+        self.label = label
 
     @property
-    def strategy_str(self):
-        return str([[strategy[0].__class__.__name__, strategy[0].log_dict[strategy[1]]] for strategy in self.Strategy])\
+    def strategy_str(self): 
+        return str([[strategy[0].__class__.__name__, strategy[0].log_dict[strategy[1]]] for strategy in self.strategy])\
             .replace("'", "")
 
 
-class Strategies:
-    Create = 0
-    Mutate = 1
-    Crossover = 2
+class Strategies: 
     __slots__ = ('strategies', 'rate')
 
-    def __init__(self, strategies:list, strategies_rate:list):
+    def __init__(self, strategies: list, strategies_rate: list):  
         self.strategies = strategies
         self.rate = strategies_rate
 
-
-class OPTG:
-    log_dict = {0: ''}
-
-
-class Load:
-    log_dict = {0: ''}
-
-
 class Create:
-    randomize = 0
-    mutate_first = 1
-    strategy = 0
-    log_dict = {0: 'randomize', 1: 'mutate_first'}
     __slots__ = ('methods', 'rate')
 
     def __init__(self, methods:list, methods_rate:list):
@@ -53,11 +49,6 @@ class Create:
 
 
 class Mutate:
-    swap_mutate = 0
-    mutate_angles = 1
-    mutate_distances = 2
-    strategy = 1
-    log_dict = {0: 'swap_mutate', 1: 'mutate_angles', 2: 'mutate_distances'}
     __slots__ = ('methods', 'rate')
     
     def __init__(self, methods:list, methods_rate:list):
@@ -66,11 +57,6 @@ class Mutate:
 
 
 class Crossover:
-    crossover_n = 0
-    crossover_1 = 1
-    crossover_2 = 2
-    strategy = 2
-    log_dict = {0: 'crossover_n', 1: 'crossover_1', 2: 'crossover_2'}
     __slots__ = ('methods', 'rate')
 
     def __init__(self, methods:list, methods_rate:list):
@@ -78,343 +64,301 @@ class Crossover:
         self.rate = methods_rate
 
 
-def display(candidate, timediff):
-    print("{0}\t{1}".format((candidate.Fitness), str(timediff)))
+class Genetic(ABC):
+    def __init__(self, first_genes, fitness_param, strategies, max_age, pool_size, mutate_after_crossover, 
+        crossover_elitism, elitism_rate, freedom_rate, parallelism, threads_per_calc, max_seconds, time_toler,
+        gens_toler, max_gens):
+        self.first_genes = first_genes
+        self.fitness_param = fitness_param
+        self.strategies = strategies
+        self.max_age = max_age
+        self.pool_size = pool_size
+        self.mutate_after_crossover = mutate_after_crossover
+        self.crossover_elitism = [1 for _ in range(pool_size)] if crossover_elitism is None else crossover_elitism
+        self.elitism_rate = elitism_rate
+        self.freedom_rate = freedom_rate
+        self.parallelism = parallelism
+        self.threads_per_calc = threads_per_calc
+        self.max_seconds = max_seconds
+        self.time_toler = time_toler
+        self.gens_toler = gens_toler
+        self.max_gens = max_gens
+        self.start_time = None
+        self.first_parent = None
+        self.lineage_ids = []
+        for strategy in strategies.strategies:
+            if type(strategy) is Mutate:
+                self.mutate_methods = strategy
+            elif type(strategy) is Create:
+                self.create_methods = strategy
+            elif type(strategy) is Crossover:
+                self.crossover_methods = strategy
+        
+    @abstractmethod
+    def get_fitness(genes):
+        pass
 
+    @staticmethod
+    def catch(candidate):
+        raise  Exception(f'An exception ocurred while generating candidate {candidate.label}.')
+    
+    @staticmethod
+    def display(candidate, timediff):
+        print("{0}\t{1}".format((candidate.fitness), str(timediff)))
+       
+    def load(self) -> Chromosome:
+        return Chromosome(self.first_genes, self.first_parent.fitness, [self.load])
 
-def get_fitness(genes, fitness_param, threads_per_calculation):
-    return - float(genes.get_value([fitness_param], nthreads=threads_per_calculation)[fitness_param])
+    def mutate_first(self):
+        return random.choices(self.mutate_methods.methods, self.mutate_methods.rate)[0](self.first_genes)
 
-
-def get_improvement(new_child, first_parent, generate_parent, maxAge, poolSize, fn_optg, maxSeconds, 
-    time_toler, use_optg):
-    startTime = time.time()
-    bestParent = fn_optg(first_parent) if use_optg else first_parent
-    yield maxSeconds is not None and time.time() - startTime > maxSeconds, bestParent
-    bestParent.Lineage = []
-    parents = [bestParent]
-    historicalFitnesses = [bestParent.Fitness]
-    for n in range(poolSize - 1):
-        parent = generate_parent(label=f'{n+1}_{n+1}')
-        if maxSeconds is not None and time.time() - startTime > maxSeconds:
-            yield True, parent
-        if time_toler is not None and time.time() - last_improvement_time > time_toler:
-            yield True, bestParent
-        if parent.Fitness > bestParent.Fitness:
-            if use_optg:
-                parent = fn_optg(parent)
-            yield False, parent
-            last_improvement_time = time.time()
-            bestParent = parent
-            bestParent.Lineage = []
-            historicalFitnesses.append(parent.Fitness)
-        parents.append(parent)
-    lastParentIndex = poolSize - 1
-    pindex = 1
-    n = poolSize
-    while True:
-        n += 1
-        if maxSeconds is not None and time.time() - startTime > maxSeconds:
-            yield True, bestParent
-        if time_toler is not None and time.time() - last_improvement_time > time_toler:
-            yield True, bestParent
-        pindex = pindex - 1 if pindex > 0 else lastParentIndex
-        parent = parents[pindex]
-        child = new_child(parents, pindex, label=f'{n}_{pindex}')
-        if parent.Fitness > child.Fitness:
-            if maxAge is None:
-                continue
-            parent.Age += 1
-            if maxAge > parent.Age:
-                continue
-            index = bisect_left(historicalFitnesses, child.Fitness, 0, len(historicalFitnesses))
-            difference = len(historicalFitnesses) - index
-            proportionSimilar = difference / len(historicalFitnesses)
-            if random.random() < exp(-proportionSimilar):
-                parents[pindex] = child
-                continue
-            parents[pindex] = bestParent
-            parent.Age = 0
-            continue
-        if not child.Fitness > parent.Fitness:
-            child.Age = parent.Age + 1
-            parents[pindex] = child
-            continue
-        parents[pindex] = child
-        parent.Age = 0
-        if child.Fitness > bestParent.Fitness:
-            if use_optg:
-                child = fn_optg(child)
-            yield False, child
-            last_improvement_time = time.time()
-            bestParent = child
-            bestParent.Lineage = []
-            historicalFitnesses.append(child.Fitness)
-
-
-def get_improvement_mp(new_child, first_parent, generate_parent, maxAge, poolSize, maxSeconds, elit_size, elitism_rate,
-    max_gen, gen_toler, time_toler, fn_optg, use_optg):
-    startTime = time.time()
-    last_improvement_time = startTime
-    queue = mp.Queue(maxsize=poolSize - 1)
-    processes = []
-    gen = 0
-    if elit_size is not None:
-        if elitism_rate is None:
-            elitism_rate = [2 for _ in range(elit_size)]
-            if sum(elitism_rate) > poolSize:
-                raise Exception('Minimal elitism exceeds pool size. Increase the pool size or reduce the elit size.')
-    bestParent = fn_optg(first_parent) if use_optg else first_parent
-    yield maxSeconds is not None and time.time() - startTime > maxSeconds, bestParent
-    bestParent.Lineage = []
-    parents = [bestParent]
-    historicalFitnesses = [bestParent.Fitness]
-    for n in range(poolSize - 1):
-        processes.append(mp.Process(target=generate_parent, args=(queue, f'{gen}_{n+1}')))
-    for process in processes:
-        process.start()
-    for _ in range(poolSize - 1):
-        parents.append(queue.get())
-    for process in processes:
-        process.join()
-    sorted_next_gen = copy.copy(parents)
-    sorted_next_gen.sort(key=lambda c: c.Fitness, reverse=False)
-    for parent in sorted_next_gen:     
-        if parent.Fitness > bestParent.Fitness:
-            if use_optg:
-                parent = fn_optg(parent)
-            yield False, parent
-            bestParent = parent
-            bestParent.Lineage = []
-            last_improvement_time = time.time()
-            historicalFitnesses.append(parent.Fitness)
-    parents.sort(key=lambda p: p.Fitness, reverse=True)
-    last_improvement_gen = 0
-    while True:
-        gen += 1
-        if maxSeconds is not None and time.time() - startTime > maxSeconds:
-            yield True, bestParent
-        if max_gen is not None and gen > max_gen:
-            yield True, bestParent
-        if gen_toler is not None and gen - last_improvement_gen > gen_toler + 1:
-            yield True, bestParent
-        if time_toler is not None and time.time() - last_improvement_time > time_toler:
-            yield True, bestParent
-        next_gen = []
-        queue = mp.Queue(maxsize=poolSize)
-        processes = []
-        results = dict()
-        if elit_size is not None:
-            for pindex in range(elit_size):
-                for i in range(elitism_rate[pindex]):
-                    processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, i + \
-                        sum(elitism_rate[:pindex]), f'{gen}_{i + sum(elitism_rate[:pindex])}')))
-            for pindex in range(elit_size, poolSize - sum(elitism_rate) + elit_size):
-                processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, sum(elitism_rate) + pindex \
-                    - elit_size, f'{gen}_{sum(elitism_rate) + pindex - elit_size}')))
-        else:
-            for pindex in range(poolSize):
-                processes.append(mp.Process(target=new_child, args=(parents, pindex, queue, pindex, f'{gen}_{pindex}')))
-        for process in processes:
-            process.start()
-        for _ in range(poolSize):
-            results.update(queue.get())
-        for process in processes:
-            process.join()
-        for i in range(poolSize):
-            next_gen.append(results[i])
-        sorted_next_gen = copy.copy(next_gen)
-        sorted_next_gen.sort(key=lambda c: c.Fitness, reverse=False)
-        for child in sorted_next_gen:
-            if child.Fitness > bestParent.Fitness:
-                if use_optg:
-                    child = fn_optg(child)
-                yield False, child
-                bestParent = child
-                bestParent.Lineage = []
-                historicalFitnesses.append(child.Fitness)
-                last_improvement_gen = gen
-                last_improvement_time = time.time()
-        for pindex in range(poolSize):
-            if next_gen[pindex].Fitness < parents[pindex].Fitness:
-                if maxAge is None:
-                    continue
-                parents[pindex].Age += 1
-                if parents[pindex].Age < maxAge:
-                    continue
-                index = bisect_left(historicalFitnesses, next_gen[pindex].Fitness, 0, len(historicalFitnesses))
-                difference = len(historicalFitnesses) - index
-                proportionSimilar = difference / len(historicalFitnesses)
-                if random.random() < exp(-proportionSimilar):
-                    next_gen[pindex].Age = parents[pindex].Age
-                    parents[pindex] = next_gen[pindex]
-                    continue
-                parents[pindex] = copy.deepcopy(bestParent)
-                parents[pindex].Age = 0
-                continue
-            if not next_gen[pindex].Fitness > parents[pindex].Fitness:
-                next_gen[pindex].Age = parents[pindex].Age + 1
-                parents[pindex] = next_gen[pindex]
-                continue
-            parents[pindex] = next_gen[pindex]
-            parents.sort(key=lambda p: p.Fitness, reverse=True)
-
-
-def optimize(first_molecule:Molecule, fitness_param:str, strategies, max_age:int=None, pool_size:int=1, 
-    max_seconds:float=None, time_tolerance:int=None, crossover_elitism=lambda x: 1, 
-    mutate_after_crossover:bool=False, parallelism:bool=False, elit_size:int=0, elitism_rate:list=None, 
-    generations_tolerance:int=None, threads_per_calculation:int=1, max_gens=None, mutation_rate:int=1, 
-    use_optg:bool=False):
-
-    start_time= time.time()
-    lineage_ids = []
-    optg_threads = threads_per_calculation if not parallelism else threads_per_calculation * pool_size
-    if crossover_elitism is None:
-        crossover_elitism = [1 for _ in range(pool_size)]
-
-    for strategy in strategies.strategies:
-        if type(strategy) is Mutate:
-            mutate_methods = strategy
-        elif type(strategy) is Create:
-            create_methods = strategy
-        elif type(strategy) is Crossover:
-            crossover_methods = strategy
-
-    mutate_lookup = {
-        Mutate.swap_mutate: lambda p, d=0: swap_mutate(p, mutation_rate),
-        Mutate.mutate_angles: lambda p, d=0: mutate_angles(p, mutation_rate),
-        Mutate.mutate_distances: lambda p, d=0: mutate_distances(p, mutation_rate)
-    }
-    mutate = lambda p: mutate_lookup[random.choices(mutate_methods.methods, mutate_methods.rate)[0]](p)
-    if not mutate_after_crossover:
-        crossover_lookup = {
-            Crossover.crossover_n: lambda p, d: crossover_n(p, d),
-            Crossover.crossover_1: lambda p, d: crossover_1(p, d),
-            Crossover.crossover_2: lambda p, d: crossover_2(p, d)
-        }
-    else:
-        crossover_lookup = {
-            Crossover.crossover_n: lambda p, d: mutate(crossover_n(p, d)),
-            Crossover.crossover_1: lambda p, d: mutate(crossover_1(p, d)),
-            Crossover.crossover_2: lambda p, d: mutate(crossover_2(p, d))
-        }
-    create_lookup = {
-        Create.randomize: lambda p, d=0: randomize(p),
-        Create.mutate_first: lambda p, d=0: mutate(first_molecule)
-    }
-    strategy_lookup = {
-        Strategies.Create: create_lookup,
-        Strategies.Mutate: mutate_lookup,
-        Strategies.Crossover: crossover_lookup
-    }
-
-    def get_child(candidates, parent_index, queue:mp.Queue=None, child_index:int=None, label:str=None):
+    def __get_child(self, candidates, parent_index, queue:mp.Queue=None, child_index:int=None, label:str=None):
+        sorted_candidates = copy.copy(candidates)
+        sorted_candidates.sort(reverse=True, key=lambda p: p.fitness)
         while True:
             try:
                 parent = candidates[parent_index]
-                for _ in range(mutation_rate):
-                    sorted_candidates = copy.copy(candidates)
-                    sorted_candidates.sort(reverse=True, key=lambda p: p.Fitness)
-                    donor = random.choices(sorted_candidates, crossover_elitism)[0]
+                for _ in range(self.freedom_rate):
                     child = Chromosome()
-                    child.Strategy.append([random.choices(strategies.strategies, strategies.rate)[0]])
-                    child.Strategy[-1].append(random.choices(child.Strategy[-1][0].methods, 
-                        child.Strategy[-1][0].rate)[0])
-                    child.Genes = strategy_lookup[child.Strategy[-1][0].strategy][child.Strategy[-1][1]]\
-                        (parent.Genes, donor.Genes)
+                    strategy = random.choices(self.strategies.strategies, self.strategies.rate)[0]
+                    method = random.chioces(strategy.methods, strategy.rate)[0]
+                    if isinstance(strategy, Crossover):
+                        donor = random.choices(sorted_candidates, self.crossover_elitism)[0]  
+                    else:
+                        donor = None
+                        child.lineage += donor.lineage
+                        child.lineage.append(donor)
+                    child.genes = method(parent, donor)
+                    child.strategy.append(method)
+                    if isinstance(strategy, Crossover) and self.mutate_after_crossover:
+                        child.strategy.append(random.choices(self.mutate_methods.methods, self.mutate_methods.rate)[0])
+                        child.genes = child.strategy[-1](child)
                     parent = child
-                    if type(child.Strategy[-1][0]) == Crossover:
-                        child.Lineage += donor.Lineage
-                        child.Lineage.append(donor)
-                child.Genes.label = label
-                child.Fitness = get_fitness(child.Genes, fitness_param, threads_per_calculation)
-                child.Lineage = parent.Lineage
-                child.Lineage.append(parent)
-                child.Lineage = [ancestor for ancestor in child.Lineage if ancestor.Genes.label not in lineage_ids]
+                child.label = label
+                child.fitness = self.get_fitness(child.genes)
+                child.lineage = parent.lineage
+                child.lineage.append(parent)
+                child.lineage = [ancestor for ancestor in child.lineage if ancestor.label not in self.lineage_ids]
                 break
             except:
-                os.remove(f'data/{child.Genes.label}.inp')
-                os.remove(f'data/{child.Genes.label}.out')
-                os.remove(f'data/{child.Genes.label}.xml')
-                continue
+                self.catch(child)
         if queue is not None:
             queue.put({child_index: child})
         return child
 
-    def fn_optg(candidate:Chromosome) -> Chromosome:
-        new_genes = optg(candidate.Genes, fitness_param, 'data', optg_threads)
-        new_fitness = -float(new_genes.output_values[fitness_param])
-        return Chromosome(new_genes, new_fitness, candidate.Strategy + [[OPTG(), 0]], 0, 
-            candidate.Lineage + [candidate])
+    def __local_optimization(self, candidate:Chromosome) -> Chromosome:
+        new_genes = self.get_local_optimization(candidate.genes)
+        new_fitness = self.get_local_optimization(new_genes)
+        return Chromosome(new_genes, new_fitness, [optg], 0, candidate.lineage + [candidate])
 
-    def fn_generate_parent(queue=None, label:str=None):
+    def local_optimize(self, molecule):
+        return molecule
+
+    def __generate_parent(self, queue=None, label:str=None):
         while True:
             try:
                 parent = Chromosome()
-                parent.Strategy = [[create_methods, random.choices(create_methods.methods, create_methods.rate)[0]]]
-                parent.Genes = create_lookup[parent.Strategy[-1][1]](first_molecule)
-                parent.Genes.label = label
-                parent.Fitness = get_fitness(parent.Genes, fitness_param, threads_per_calculation)
+                parent.strategy.append(random.choices(self.create_methods.methods, self.create_methods.rate)[0])
+                parent.genes = parent.strategy[0](self.first_genes)
+                parent.label = label
+                parent.fitness = self.get_fitness(parent.genes, self.fitness_param, self.threads_per_calculation)
                 break
             except:
-                os.remove(f'data/{parent.Genes.label}.inp')
-                os.remove(f'data/{parent.Genes.label}.out')
-                os.remove(f'data/{parent.Genes.label}.xml')
-                continue
+                self.catch(parent)
         if queue is not None:
             queue.put(parent)
         return parent
 
-    usedStrategies = []
-    first_molecule.label = '0_0'
-    first_parent = Chromosome(first_molecule, get_fitness(first_molecule, fitness_param, 
-        threads_per_calculation * pool_size), [[Load(), 0]])
-    if not os.path.exists('lineage'):
-        os.mkdir('lineage')
-    n = 0
-    j = 0
-    if not parallelism:
-        for timedOut, improvement in get_improvement(get_child, first_parent, fn_generate_parent, max_age, pool_size, 
-            fn_optg, max_seconds, time_tolerance, use_optg):
-            improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
-            improvement.Lineage.append(improvement)
-            timediff = time.time() - start_time
-            display(improvement, timediff)
+    def run(self):
+        self.start_time = time.time()
+        self.first_parent = Chromosome(self.first_genes, self.get_fitness(self.first_genes), label = '0_0')
+        opt_func = self.__get_improvement_mp if self.parallelism else self.__get_improvement
+        n = 0
+        j = 0
+        if not os.path.exists('lineage'):
+            os.mkdir('lineage')
+        for timedOut, improvement in opt_func(self):
+            improvement.genes.save(f'{n}_{improvement.label}', 'improvements')
+            improvement.lineage.append(improvement)
+            timediff = time.time() - self.start_time
+            self.display(improvement, timediff)
             with open('improvements_strategies.log', 'a') as islog:
-                islog.write(f'{improvement.strategy_str}\t{improvement.Fitness}\t{timediff}\n')
+                islog.write(f'{improvement.strategy_str}\t{improvement.fitness}\t{timediff}\n')
             with open('lineage_strategies.log', 'a') as lslog:
-                for ancestor in improvement.Lineage:
-                    if not ancestor.Genes.label in lineage_ids:
-                        lineage_ids.append(ancestor.Genes.label)
-                        lslog.write(f'{ancestor.strategy_str}\t{ancestor.Fitness}\t{timediff}\n')
-                        ancestor.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
+                for ancestor in improvement.lineage:
+                    if not ancestor.label in self.lineage_ids:
+                        self.lineage_ids.append(ancestor.label)
+                        lslog.write(f'{ancestor.strategy_str}\t{ancestor.fitness}\t{timediff}\n')
+                        ancestor.genes.save(f'{j}_{ancestor.label}', 'lineage')
                         j += 1
-            usedStrategies.append(improvement.Strategy)
             n += 1
             if timedOut:
                 break
-    else:
-        for timedOut, improvement in get_improvement_mp(get_child, first_parent, fn_generate_parent, max_age, pool_size,
-            max_seconds, elit_size, elitism_rate, max_gens, generations_tolerance, time_tolerance, fn_optg,
-            use_optg):
-            improvement.Genes.save(f'{n}_{improvement.Genes.label}', 'improvements')
-            improvement.Lineage.append(improvement)
-            timediff = time.time() - start_time
-            display(improvement, timediff)
-            with open('improvements_strategies.log', 'a') as islog:
-                islog.write(f'{improvement.strategy_str}\t{improvement.Fitness}\t{timediff}\n')
-            with open('lineage_strategies.log', 'a') as lslog:
-                for ancestor in improvement.Lineage:
-                    if not ancestor.Genes.label in lineage_ids:
-                        lineage_ids.append(ancestor.Genes.label)
-                        lslog.write(f'{ancestor.strategy_str}\t{ancestor.Fitness}\t{timediff}\n')
-                        ancestor.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
-                        j += 1
-            usedStrategies.append(improvement.Strategy)
+        improvement.genes.save(f'{j}_{ancestor.label}', 'lineage')
+        with open('strategies_log.txt', 'a') as slog:
+            slog.write('\n---\n\n')
+        return improvement.genes
+
+    def __get_improvement(self):
+        best_parent = self.local_optimization(self.first_parent)
+        yield self.max_seconds is not None and time.time() - self.start_time > self.max_seconds, best_parent
+        best_parent.lineage = []
+        parents = [best_parent]
+        historical_fitnesses = [best_parent.fitness]
+        for n in range(self.pool_size - 1):
+            parent = self.__generate_parent(label=f'{n+1}_{n+1}')
+            if self.max_seconds is not None and time.time() - self.start_time > self.max_seconds:
+                yield True, parent
+            if self.time_toler is not None and time.time() - last_improvement_time > self.time_toler:
+                yield True, best_parent
+            if parent.fitness > best_parent.fitness:
+                parent = self.local_optimization(parent)
+                yield False, parent
+                last_improvement_time = time.time()
+                best_parent = parent
+                best_parent.lineage = []
+                historical_fitnesses.append(parent.fitness)
+            parents.append(parent)
+        lastParentIndex = self.pool_size - 1
+        pindex = 1
+        n = self.pool_size
+        while True:
             n += 1
-            if timedOut:
-                break
-    improvement.Genes.save(f'{j}_{ancestor.Genes.label}', 'lineage')
-    with open('strategies_log.txt', 'a') as slog:
-        slog.write('\n---\n\n')
-    return improvement.Genes, usedStrategies
+            if self.max_seconds is not None and time.time() - self.start_time > self.max_seconds:
+                yield True, best_parent
+            if self.time_toler is not None and time.time() - last_improvement_time > self.time_toler:
+                yield True, best_parent
+            pindex = pindex - 1 if pindex > 0 else lastParentIndex
+            parent = parents[pindex]
+            child = self.__get_child(parents, pindex, label=f'{n}_{pindex}')
+            if parent.fitness > child.fitness:
+                if self.max_age is None:
+                    continue
+                parent.age += 1
+                if self.max_age > parent.age:
+                    continue
+                index = bisect_left(historical_fitnesses, child.fitness, 0, len(historical_fitnesses))
+                difference = len(historical_fitnesses) - index
+                proportionSimilar = difference / len(historical_fitnesses)
+                if random.random() < exp(-proportionSimilar):
+                    parents[pindex] = child
+                    continue
+                parents[pindex] = best_parent
+                parent.age = 0
+                continue
+            if not child.fitness > parent.fitness:
+                child.age = parent.age + 1
+                parents[pindex] = child
+                continue
+            parents[pindex] = child
+            parent.age = 0
+            if child.fitness > best_parent.fitness:
+                child = self.local_optimization(child)
+                yield False, child
+                last_improvement_time = time.time()
+                best_parent = child
+                best_parent.lineage = []
+                historical_fitnesses.append(child.fitness)
+
+    def __get_improvement_mp(self):
+        elit_size = len(self.elitism_rate) if self.litism_rate is not None else None
+        last_improvement_time = self.start_time
+        queue = mp.Queue(maxsize=self.pool_size - 1)
+        processes = []
+        gen = 0
+        if sum(self.elitism_rate) > self.pool_size:
+            raise Exception('Minimal elitism exceeds pool size. Increase the pool size or reduce the elit size.')
+        best_parent = self.__local_optimization(self.first_parent)
+        yield self.max_seconds is not None and time.time() - self.start_time > self.max_seconds, best_parent
+        best_parent.lineage = []
+        parents = [best_parent]
+        historical_fitnesses = [best_parent.fitness]
+        for n in range(self.pool_size - 1):
+            processes.append(mp.Process(target=self.__generate_parent, args=(queue, f'{gen}_{n+1}')))
+        for process in processes:
+            process.start()
+        for _ in range(self.pool_size - 1):
+            parents.append(queue.get())
+        for process in processes:
+            process.join()
+        sorted_next_gen = copy.copy(parents)
+        sorted_next_gen.sort(key=lambda c: c.fitness, reverse=False)
+        for parent in sorted_next_gen:     
+            if parent.fitness > best_parent.fitness:
+                parent = self.__local_optimization(parent)
+                yield False, parent
+                best_parent = parent
+                best_parent.lineage = []
+                last_improvement_time = time.time()
+                historical_fitnesses.append(parent.fitness)
+        parents.sort(key=lambda p: p.fitness, reverse=True)
+        last_improvement_gen = 0
+        while True:
+            gen += 1
+            if self.max_seconds is not None and time.time() - self.start_time > self.max_seconds:
+                yield True, best_parent
+            if self.max_gen is not None and gen > self.max_gen:
+                yield True, best_parent
+            if self.gen_toler is not None and gen - last_improvement_gen > self.gen_toler + 1:
+                yield True, best_parent
+            if self.time_toler is not None and time.time() - last_improvement_time > self.time_toler:
+                yield True, best_parent
+            next_gen = []
+            queue = mp.Queue(maxsize=self.pool_size)
+            processes = []
+            results = dict()
+            if elit_size is not None:
+                for pindex in range(elit_size):
+                    for i in range(self.elitism_rate[pindex]):
+                        processes.append(mp.Process(target=self.__get_child, args=(parents, pindex, queue, i + \
+                            sum(self.elitism_rate[:pindex]), f'{gen}_{i + sum(self.elitism_rate[:pindex])}')))
+                for pindex in range(elit_size, self.pool_size - sum(self.elitism_rate) + elit_size):
+                    processes.append(mp.Process(target=self.__get_child, args=(parents, pindex, queue, 
+                        sum(self.elitism_rate) + pindex - elit_size, 
+                        f'{gen}_{sum(self.elitism_rate) + pindex - elit_size}')))
+            else:
+                for pindex in range(self.pool_size):
+                    processes.append(mp.Process(target=self.__get_child, args=(parents, pindex, queue, pindex,
+                    f'{gen}_{pindex}')))
+            for process in processes:
+                process.start()
+            for _ in range(self.pool_size):
+                results.update(queue.get())
+            for process in processes:
+                process.join()
+            for i in range(self.pool_size):
+                next_gen.append(results[i])
+            sorted_next_gen = copy.copy(next_gen)
+            sorted_next_gen.sort(key=lambda c: c.fitness, reverse=False)
+            for child in sorted_next_gen:
+                if child.fitness > best_parent.fitness:
+                    child = self.__local_optimization(child)
+                    yield False, child
+                    best_parent = child
+                    best_parent.lineage = []
+                    historical_fitnesses.append(child.fitness)
+                    last_improvement_gen = gen
+                    last_improvement_time = time.time()
+            for pindex in range(self.pool_size):
+                if next_gen[pindex].fitness < parents[pindex].fitness:
+                    if self.max_age is None:
+                        continue
+                    parents[pindex].age += 1
+                    if parents[pindex].age < self.max_age:
+                        continue
+                    index = bisect_left(historical_fitnesses, next_gen[pindex].fitness, 0, len(historical_fitnesses))
+                    difference = len(historical_fitnesses) - index
+                    proportionSimilar = difference / len(historical_fitnesses)
+                    if random.random() < exp(-proportionSimilar):
+                        next_gen[pindex].age = parents[pindex].age
+                        parents[pindex] = next_gen[pindex]
+                        continue
+                    parents[pindex] = copy.deepcopy(best_parent)
+                    parents[pindex].age = 0
+                    continue
+                if not next_gen[pindex].fitness > parents[pindex].fitness:
+                    next_gen[pindex].age = parents[pindex].age + 1
+                    parents[pindex] = next_gen[pindex]
+                    continue
+                parents[pindex] = next_gen[pindex]
+                parents.sort(key=lambda p: p.fitness, reverse=True)

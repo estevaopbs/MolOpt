@@ -146,7 +146,7 @@ class Molecule:
             if not os.path.exists(f'{directory}/{document}.inp'):
                 self.save(document, directory)
                 deldoc = True
-            os.system(f'molpro -n {nthreads} ./{directory}/{document}.inp')
+            os.system(f"molpro -n {nthreads} './{directory}/{document}.inp'")
         with open(f'{directory}/{document}.out', 'r') as file:
             outstr = file.read()
         for item in wanted:

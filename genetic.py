@@ -16,10 +16,10 @@ class Chromosome:
     """Object that represents the candidates
     """    
     Chromosome = Any 
-    __slots__ = ('genes', 'fitness', 'strategy', 'age', 'lineage')
+    __slots__ = ('genes', 'fitness', 'strategy', 'age', 'lineage', 'label')
 
     def __init__(self, genes: Any = None, fitness: Union[float, int] = None, strategy: list = [], 
-        age: int = 0, lineage: list[Chromosome]=[], label: str = None): 
+        age: int = 0, lineage: list[Chromosome] = [], label: str = None): 
         self.genes = genes
         self.fitness = fitness
         self.strategy = strategy

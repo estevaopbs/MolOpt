@@ -2,7 +2,7 @@ import time
 from bisect import bisect_left
 from math import exp
 import multiprocessing as mp
-from typing import Union, Any
+from typing import TypeVar, Any
 from abc import ABC, abstractmethod
 from datetime import datetime
 import random
@@ -14,12 +14,27 @@ import os
 
 class Chromosome:
     """Object that represents the candidates
-    """    
-    Chromosome = Any 
+    """
+    Chromosome = TypeVar('Chromosome') 
     __slots__ = ('genes', 'fitness', 'strategy', 'age', 'lineage', 'label')
 
-    def __init__(self, genes: Any = None, fitness: Union[float, int] = None, strategy: list = [], 
-        age: int = 0, lineage: list[Chromosome] = [], label: str = None): 
+    def __init__(self, genes: Any = None, fitness: int | float = None, strategy: list = [], 
+        age: int = 0, lineage: list[Chromosome] = [], label: str = None) -> None:
+        """[summary]
+
+        :param genes: [description], defaults to None
+        :type genes: Any, optional
+        :param fitness: [description], defaults to None
+        :type fitness: int, optional
+        :param strategy: [description], defaults to []
+        :type strategy: list, optional
+        :param age: [description], defaults to 0
+        :type age: int, optional
+        :param lineage: [description], defaults to []
+        :type lineage: list[Chromosome], optional
+        :param label: [description], defaults to None
+        :type label: str, optional
+        """        
         self.genes = genes
         self.fitness = fitness
         self.strategy = strategy
@@ -28,41 +43,69 @@ class Chromosome:
         self.label = label
 
     @property
-    def strategy_str(self): 
+    def strategy_str(self) -> str:
+        """[summary]
+
+        :return: [description]
+        :rtype: str
+        """        
         return str([strategy.__name__ for strategy in self.strategy]).replace("'", "")
 
 
-class Strategies: 
+class Strategies:
+    """[summary]
+    """    
     __slots__ = ('strategies', 'rate')
 
-    def __init__(self, strategies: list, strategies_rate: list):  
+    def __init__(self, strategies: list, strategies_rate: list) -> None:
+        """[summary]
+
+        :param strategies: [description]
+        :type strategies: list
+        :param strategies_rate: [description]
+        :type strategies_rate: list
+        """        
         self.strategies = strategies
         self.rate = strategies_rate
 
 
-class Create:
-    __slots__ = ('methods', 'rate')
-
-    def __init__(self, methods:list, methods_rate:list):
-        self.methods = methods
-        self.rate = methods_rate
-
-    def __call__(self, parent=None, donor=None, mutate_after_crossover=None, mutate_methods=None, first_parent=None):
-        child = Chromosome()
-        method = random.choices(self.methods, self.rate)[0]
-        child.genes = method(first_parent)
-        child.strategy.append(method)
-        return child
-
-
 class Mutate:
+    """[summary]
+
+    :return: [description]
+    :rtype: [type]
+    """    
+    Mutate = TypeVar('Mutate')
     __slots__ = ('methods', 'rate')
     
-    def __init__(self, methods:list, methods_rate:list):
+    def __init__(self, methods: list, methods_rate: list) -> None:
+        """[summary]
+
+        :param methods: [description]
+        :type methods: list
+        :param methods_rate: [description]
+        :type methods_rate: list
+        """        
         self.methods = methods
         self.rate = methods_rate
 
-    def __call__(self, parent, donor=None, mutate_after_crossover=None, mutate_methods=None, first_parent=None):
+    def __call__(self, parent: Chromosome, donor: Chromosome = None, mutate_after_crossover: bool = None, 
+        mutate_methods: Mutate = None, first_parent: Chromosome = None) -> Chromosome:
+        """[summary]
+
+        :param parent: [description]
+        :type parent: Chromosome
+        :param donor: [description], defaults to None
+        :type donor: Chromosome, optional
+        :param mutate_after_crossover: [description], defaults to None
+        :type mutate_after_crossover: bool, optional
+        :param mutate_methods: [description], defaults to None
+        :type mutate_methods: Mutate, optional
+        :param first_parent: [description], defaults to None
+        :type first_parent: Chromosome, optional
+        :return: [description]
+        :rtype: Chromosome
+        """        
         child = Chromosome()
         method = random.choices(self.methods, self.rate)[0]
         child.genes = method(parent)
@@ -71,13 +114,41 @@ class Mutate:
 
 
 class Crossover:
+    """[summary]
+
+    :return: [description]
+    :rtype: [type]
+    """    
     __slots__ = ('methods', 'rate')
 
-    def __init__(self, methods:list, methods_rate:list):
+    def __init__(self, methods: list, methods_rate: list):
+        """[summary]
+
+        :param methods: [description]
+        :type methods: list
+        :param methods_rate: [description]
+        :type methods_rate: list
+        """
         self.methods = methods
         self.rate = methods_rate
 
-    def __call__(self, parent, donor, mutate_after_crossover, mutate_methods, first_parent=None):
+    def __call__(self, parent: Chromosome, donor: Chromosome, mutate_after_crossover: bool, mutate_methods: Mutate, 
+        first_parent: Chromosome = None) -> Chromosome:
+        """[summary]
+
+        :param parent: [description]
+        :type parent: Chromosome
+        :param donor: [description]
+        :type donor: Chromosome
+        :param mutate_after_crossover: [description]
+        :type mutate_after_crossover: bool
+        :param mutate_methods: [description]
+        :type mutate_methods: Mutate
+        :param first_parent: [description], defaults to None
+        :type first_parent: Chromosome, optional
+        :return: [description]
+        :rtype: Chromosome
+        """        
         child = Chromosome()
         method = random.choices(self.methods, self.rate)[0]
         child.lineage += donor.lineage
@@ -89,18 +160,115 @@ class Crossover:
         return child
 
 
+class Create:
+    """[summary]
+
+    :return: [description]
+    :rtype: [type]
+    """    
+    __slots__ = ('methods', 'rate')
+
+    def __init__(self, methods: list, methods_rate: list) -> None:
+        """[summary]
+
+        :param methods: [description]
+        :type methods: list
+        :param methods_rate: [description]
+        :type methods_rate: list
+        """        
+        self.methods = methods
+        self.rate = methods_rate
+
+    def __call__(self, parent: Chromosome = None, donor: Chromosome = None, mutate_after_crossover: bool = None, 
+        mutate_methods: Mutate = None, first_parent = None) -> Chromosome:
+        """[summary]
+
+        :param parent: [description], defaults to None
+        :type parent: [type], optional
+        :param donor: [description], defaults to None
+        :type donor: [type], optional
+        :param mutate_after_crossover: [description], defaults to None
+        :type mutate_after_crossover: [type], optional
+        :param mutate_methods: [description], defaults to None
+        :type mutate_methods: [type], optional
+        :param first_parent: [description], defaults to None
+        :type first_parent: [type], optional
+        :return: [description]
+        :rtype: Chromosome
+        """        
+        child = Chromosome()
+        method = random.choices(self.methods, self.rate)[0]
+        child.genes = method(first_parent)
+        child.strategy.append(method)
+        return child
+
+
 def mutate_first(first_parent):
+    """[summary]
+
+    :param first_parent: [description]
+    :type first_parent: [type]
+    """    
     pass
 
 
 def mutate_best(best_candidate):
+    """[summary]
+
+    :param best_candidate: [description]
+    :type best_candidate: [type]
+    """    
     pass
 
 
 class Genetic(ABC):
+    """[summary]
+
+    :param ABC: [description]
+    :type ABC: [type]
+    """
+    __slots__ = ('first_genes', 'fitness_param', 'strategies', 'max_age', 'pool_size', 'mutate_after_crossover', 
+        'crossover_elitism', 'elitism_rate', 'freedom_rate', 'parallelism', 'local_opt', 'max_seconds', 'time_toler', 
+        'gens_toler', 'max_gens', 'save_directory', 'start_time', 'first_parent', 'lineage_ids', 'best_candidate', 
+        'mutate_methods', 'create_methods', 'crossover_methods')
     def __init__(self, first_genes, fitness_param, strategies, max_age, pool_size, mutate_after_crossover, 
         crossover_elitism, elitism_rate, freedom_rate, parallelism, local_opt, max_seconds, time_toler, gens_toler, 
         max_gens, save_directory):
+        """[summary]
+
+        :param first_genes: [description]
+        :type first_genes: [type]
+        :param fitness_param: [description]
+        :type fitness_param: [type]
+        :param strategies: [description]
+        :type strategies: [type]
+        :param max_age: [description]
+        :type max_age: [type]
+        :param pool_size: [description]
+        :type pool_size: [type]
+        :param mutate_after_crossover: [description]
+        :type mutate_after_crossover: [type]
+        :param crossover_elitism: [description]
+        :type crossover_elitism: [type]
+        :param elitism_rate: [description]
+        :type elitism_rate: [type]
+        :param freedom_rate: [description]
+        :type freedom_rate: [type]
+        :param parallelism: [description]
+        :type parallelism: [type]
+        :param local_opt: [description]
+        :type local_opt: [type]
+        :param max_seconds: [description]
+        :type max_seconds: [type]
+        :param time_toler: [description]
+        :type time_toler: [type]
+        :param gens_toler: [description]
+        :type gens_toler: [type]
+        :param max_gens: [description]
+        :type max_gens: [type]
+        :param save_directory: [description]
+        :type save_directory: [type]
+        """        
         self.first_genes = first_genes
         self.fitness_param = fitness_param
         self.strategies = strategies
@@ -136,30 +304,91 @@ class Genetic(ABC):
         
     @abstractmethod
     def get_fitness(self, candidate):
+        """[summary]
+
+        :param candidate: [description]
+        :type candidate: [type]
+        """        
         pass
 
     @abstractmethod
     def save(self, candidate, file_name, directory):
+        """[summary]
+
+        :param candidate: [description]
+        :type candidate: [type]
+        :param file_name: [description]
+        :type file_name: [type]
+        :param directory: [description]
+        :type directory: [type]
+        """        
         pass
 
     def mutate_first(self, first_parent):
+        """[summary]
+
+        :param first_parent: [description]
+        :type first_parent: [type]
+        :return: [description]
+        :rtype: [type]
+        """        
         return self.mutate_methods(self.first_parent).genes
 
     def mutate_best(self, best_candidate):
+        """[summary]
+
+        :param best_candidate: [description]
+        :type best_candidate: [type]
+        :return: [description]
+        :rtype: [type]
+        """        
         return self.mutate_methods(self.best_candidate).genes
 
     @staticmethod
     def catch(candidate):
+        """[summary]
+
+        :param candidate: [description]
+        :type candidate: [type]
+        :raises Exception: [description]
+        """        
         raise  Exception(f'An exception ocurred while generating candidate {candidate.label}.')
     
     @staticmethod
     def display(candidate, timediff):
+        """[summary]
+
+        :param candidate: [description]
+        :type candidate: [type]
+        :param timediff: [description]
+        :type timediff: [type]
+        """        
         print("{0}\t{1}".format((candidate.fitness), str(timediff)))
        
     def load(self) -> Chromosome:
+        """[summary]
+
+        :return: [description]
+        :rtype: Chromosome
+        """        
         return Chromosome(self.first_genes, self.first_parent.fitness, [self.load])
 
     def __get_child(self, candidates, parent_index, queue:mp.Queue=None, child_index:int=None, label:str=None):
+        """[summary]
+
+        :param candidates: [description]
+        :type candidates: [type]
+        :param parent_index: [description]
+        :type parent_index: [type]
+        :param queue: [description], defaults to None
+        :type queue: mp.Queue, optional
+        :param child_index: [description], defaults to None
+        :type child_index: int, optional
+        :param label: [description], defaults to None
+        :type label: str, optional
+        :return: [description]
+        :rtype: [type]
+        """        
         sorted_candidates = copy.copy(candidates)
         sorted_candidates.sort(reverse=True, key=lambda p: p.fitness)
         while True:
@@ -183,6 +412,13 @@ class Genetic(ABC):
         return child
 
     def __local_optimization(self, candidate:Chromosome) -> Chromosome:
+        """[summary]
+
+        :param candidate: [description]
+        :type candidate: Chromosome
+        :return: [description]
+        :rtype: Chromosome
+        """        
         if not self.local_opt:
             return candidate
         new_genes = self.local_optimize(candidate)
@@ -191,9 +427,23 @@ class Genetic(ABC):
             candidate.lineage + [candidate])
 
     def local_optimize(self, candidate):
+        """[summary]
+
+        :param candidate: [description]
+        :type candidate: [type]
+        """        
         pass
 
     def __generate_parent(self, queue=None, label:str=None):
+        """[summary]
+
+        :param queue: [description], defaults to None
+        :type queue: [type], optional
+        :param label: [description], defaults to None
+        :type label: str, optional
+        :return: [description]
+        :rtype: [type]
+        """        
         while True:
             try:
                 parent = self.create_methods(first_parent=self.first_parent)
@@ -207,6 +457,11 @@ class Genetic(ABC):
         return parent
 
     def run(self):
+        """[summary]
+
+        :return: [description]
+        :rtype: [type]
+        """        
         os.mkdir(self.save_directory)
         os.mkdir(f'{self.save_directory}/lineage')
         os.mkdir(f'{self.save_directory}/improvements')
@@ -240,6 +495,11 @@ class Genetic(ABC):
         return improvement.genes
 
     def __get_improvement(self):
+        """[summary]
+
+        :yield: [description]
+        :rtype: [type]
+        """        
         best_parent = self.__local_optimization(self.load())
         best_parent.label = '0_0'
         yield self.max_seconds is not None and time.time() - self.start_time > self.max_seconds, best_parent
@@ -302,6 +562,12 @@ class Genetic(ABC):
                 historical_fitnesses.append(child.fitness)
 
     def __get_improvement_mp(self):
+        """[summary]
+
+        :raises Exception: [description]
+        :yield: [description]
+        :rtype: [type]
+        """        
         elit_size = len(self.elitism_rate) if self.elitism_rate is not None else None
         last_improvement_time = self.start_time
         queue = mp.Queue(maxsize=self.pool_size - 1)

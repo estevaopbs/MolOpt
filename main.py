@@ -23,6 +23,28 @@ class Molecular_improvement(Genetic):
         return - float(molecule.get_value([self.fitness_param], document=file_name, 
             nthreads=self.threads_per_calc)[self.fitness_param])
 
+    @staticmethod
+    def swap_mutate(parent): return swap_mutate(parent.genes)
+
+    @staticmethod
+    def mutate_angles(parent): return mutate_angles(parent.genes)
+
+    @staticmethod
+    def mutate_distances(parent): return mutate_distances(parent.genes)
+
+    @staticmethod
+    def crossover_1(parent, donor): return crossover_1(parent.genes, donor.genes)
+
+    @staticmethod
+    def crossover_2(parent, donor): return crossover_2(parent.genes, donor.genes)
+
+    @staticmethod
+    def crossover_n(parent, donor): return crossover_n(parent.genes, donor.genes)
+
+    @staticmethod
+    def randomize(parent):
+        return randomize(parent)
+
     #def local_optimize(self, molecule):
     #    return optg(molecule, self.fitness_param, nthreads = self.pool_size * self.threads_per_calc)
 
@@ -38,9 +60,21 @@ class Molecular_improvement(Genetic):
 
 
 if __name__ == '__main__':
-    mutate_methods = Mutate([swap_mutate, mutate_angles, mutate_distances], [1, 1, 1])
-    crossover_methods = Crossover([crossover_1, crossover_2, crossover_n], [1, 1, 1])
-    create_methods = Create([randomize, mutate_first], [1, 1])
+    mutate_methods = Mutate(
+        [
+            Molecular_improvement.swap_mutate, 
+            Molecular_improvement.mutate_angles, 
+            Molecular_improvement.mutate_distances], 
+            [1, 1, 1]
+        )
+    crossover_methods = Crossover(
+        [
+            Molecular_improvement.crossover_1, 
+            Molecular_improvement.crossover_2, 
+            Molecular_improvement.crossover_n], 
+            [1, 1, 1]
+            )
+    create_methods = Create([Molecular_improvement.randomize, Molecular_improvement.mutate_first], [1, 1])
     strategies = Strategies([mutate_methods, crossover_methods, create_methods], [1, 1, 0])
     Al10_test = Molecular_improvement(
         first_genes = Molecule.load('al_n.inp', (0, 3)),

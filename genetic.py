@@ -94,9 +94,8 @@ class Genetic(ABC):
                 self.create_methods = strategy
             elif type(strategy) is Crossover:
                 self.crossover_methods = strategy
-        if mutate_first in self.create_methods:
-            self.create_methods[self.create_methods.index(mutate_first)] = self.mutate_first
-            pass
+        if mutate_first in self.create_methods.methods:
+            self.create_methods.methods[self.create_methods.methods.index(mutate_first)] = self.mutate_first
         
     @abstractmethod
     def get_fitness(self, candidate):
@@ -129,7 +128,7 @@ class Genetic(ABC):
                 for _ in range(self.freedom_rate):
                     child = Chromosome()
                     strategy = random.choices(self.strategies.strategies, self.strategies.rate)[0]
-                    method = random.chioces(strategy.methods, strategy.rate)[0]
+                    method = random.choices(strategy.methods, strategy.rate)[0]
                     if isinstance(strategy, Crossover):
                         donor = random.choices(sorted_candidates, self.crossover_elitism)[0]  
                     else:
@@ -167,7 +166,7 @@ class Genetic(ABC):
             try:
                 parent = Chromosome()
                 parent.strategy.append(random.choices(self.create_methods.methods, self.create_methods.rate)[0])
-                parent.genes = parent.strategy[0](self.first_genes)
+                parent.genes = parent.strategy[0]()
                 parent.label = label
                 parent.fitness = self.get_fitness(parent)
                 break

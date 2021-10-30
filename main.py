@@ -17,10 +17,12 @@ class Molecular_improvement(Genetic):
         file_name = candidate.label
         if candidate.label == '0_0':
             return - float(molecule.get_value([self.fitness_param], document=file_name, 
+                directory=self.save_directory + '/data', 
                 nthreads=self.threads_per_calc * self.pool_size)[self.fitness_param])
         if molecule.was_optg:
             return - molecule.output_values[self.fitness_param]
         return - float(molecule.get_value([self.fitness_param], document=file_name, 
+            directory=self.save_directory + '/data', 
             nthreads=self.threads_per_calc)[self.fitness_param])
 
     @staticmethod

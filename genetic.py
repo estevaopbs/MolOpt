@@ -134,7 +134,7 @@ class Genetic(ABC):
         pass
 
     def mutate_first(self, first_parent):
-        return random.choices(self.mutate_methods.methods, self.mutate_methods.rate)[0](first_parent)
+        return Mutate(first_parent)
 
     @staticmethod
     def catch(candidate):
@@ -185,9 +185,7 @@ class Genetic(ABC):
     def __generate_parent(self, queue=None, label:str=None):
         while True:
             try:
-                parent = Chromosome()
-                parent.strategy.append(random.choices(self.create_methods.methods, self.create_methods.rate)[0])
-                parent.genes = parent.strategy[0](self.first_parent)
+                parent = Create(self.first_parent)
                 parent.label = label
                 parent.fitness = self.get_fitness(parent)
                 break

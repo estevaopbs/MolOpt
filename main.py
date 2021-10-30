@@ -55,8 +55,8 @@ class Molecular_improvement(Genetic):
         os.remove(f'data/{candidate.label}.xml')
 
     @staticmethod
-    def save(genes, file_name, directory):
-        genes.save(file_name, directory)
+    def save(candidate, file_name, directory):
+        candidate.genes.save(file_name, directory)
 
 
 if __name__ == '__main__':

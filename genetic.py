@@ -134,7 +134,7 @@ class Genetic(ABC):
         pass
 
     def mutate_first(self, first_parent):
-        return Mutate(first_parent)
+        return self.mutate_methods(first_parent).genes
 
     @staticmethod
     def catch(candidate):

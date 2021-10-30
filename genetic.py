@@ -227,6 +227,7 @@ class Genetic(ABC):
 
     def __get_improvement(self):
         best_parent = self.__local_optimization(self.load())
+        best_parent.label = '0_0'
         yield self.max_seconds is not None and time.time() - self.start_time > self.max_seconds, best_parent
         best_parent.lineage = []
         parents = [best_parent]

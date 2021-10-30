@@ -63,6 +63,10 @@ class Crossover:
         self.rate = methods_rate
 
 
+def mutate_first(genes):
+    pass
+
+
 class Genetic(ABC):
     def __init__(self, first_genes, fitness_param, strategies, max_age, pool_size, mutate_after_crossover, 
         crossover_elitism, elitism_rate, freedom_rate, parallelism, max_seconds, time_toler, gens_toler, max_gens):
@@ -90,6 +94,9 @@ class Genetic(ABC):
                 self.create_methods = strategy
             elif type(strategy) is Crossover:
                 self.crossover_methods = strategy
+
+        def mutate_first(first_genes):
+            return random.choices(self.mutate_methods.methods, self.mutate_methods.rate)[0](self.first_genes)
         
     @abstractmethod
     def get_fitness(self, candidate):
@@ -110,8 +117,7 @@ class Genetic(ABC):
     def load(self) -> Chromosome:
         return Chromosome(self.first_genes, self.first_parent.fitness, [self.load])
 
-    def mutate_first(self):
-        return random.choices(self.mutate_methods.methods, self.mutate_methods.rate)[0](self.first_genes)
+    
 
     def __get_child(self, candidates, parent_index, queue:mp.Queue=None, child_index:int=None, label:str=None):
         sorted_candidates = copy.copy(candidates)

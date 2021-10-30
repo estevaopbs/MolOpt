@@ -4,6 +4,7 @@ from math import exp
 import multiprocessing as mp
 from typing import Union, Any
 from abc import ABC, abstractmethod
+from datetime import datetime
 import random
 import copy
 import os
@@ -89,14 +90,18 @@ class Crossover:
         return child
 
 
-def mutate_first():
+def mutate_first(first_parent):
+    pass
+
+
+def mutate_best(best_parent):
     pass
 
 
 class Genetic(ABC):
     def __init__(self, first_genes, fitness_param, strategies, max_age, pool_size, mutate_after_crossover, 
         crossover_elitism, elitism_rate, freedom_rate, parallelism, local_opt, max_seconds, time_toler, gens_toler, 
-        max_gens):
+        max_gens, save_directory):
         self.first_genes = first_genes
         self.fitness_param = fitness_param
         self.strategies = strategies
@@ -112,6 +117,8 @@ class Genetic(ABC):
         self.time_toler = time_toler
         self.gens_toler = gens_toler
         self.max_gens = max_gens
+        self.save_directory = f"{datetime.now().strftime('%Y/%m/%d %H:%M')}" if save_directory == None \
+            else save_directory
         self.start_time = None
         self.first_parent = None
         self.lineage_ids = []
@@ -201,28 +208,29 @@ class Genetic(ABC):
         opt_func = self.__get_improvement_mp if self.parallelism else self.__get_improvement
         n = 0
         j = 0
-        if not os.path.exists('lineage'):
-            os.mkdir('lineage')
+        os.mkdir(self.save_directory)
+        os.mkdir(f'{self.save_directory}/lineage')
+        os.mkdir(f'{self.save_directory}/improvements')
         for timed_out, improvement in opt_func():
-            self.save(improvement, f'{n}_{improvement.label}', 'improvements')
+            self.save(improvement, f'{n}_{improvement.label}', f'{self.save_directory}/improvements')
             improvement.lineage.append(improvement)
             timediff = time.time() - self.start_time
             self.display(improvement, timediff)
-            with open('improvements_strategies.log', 'a') as islog:
+            with open(f'{self.save_directory}/improvements_strategies.log', 'a') as islog:
                 islog.write(f'{improvement.strategy_str}\t{improvement.fitness}\t{timediff}\n')
-            with open('lineage_strategies.log', 'a') as lslog:
+            with open(f'{self.save_directory}/lineage_strategies.log', 'a') as lslog:
                 for ancestor in improvement.lineage:
                     if not ancestor.label in self.lineage_ids:
                         self.lineage_ids.append(ancestor.label)
                         lslog.write(f'{ancestor.strategy_str}\t{ancestor.fitness}\t{timediff}\n')
-                        self.save(ancestor, f'{j}_{ancestor.label}', 'lineage')
+                        self.save(ancestor, f'{j}_{ancestor.label}', f'{self.save_directory}/lineage')
                         j += 1
             n += 1
             if timed_out:
                 break
-        improvement.genes.save(f'{j}_{ancestor.label}', 'lineage')
-        with open('strategies_log.txt', 'a') as slog:
-            slog.write('\n---\n\n')
+        self.save(improvement, f'{n}_{improvement.label}_best', f'{self.save_directory}')
+        with open(f'{self.save_directory}/strategies_log.txt', 'a') as slog:
+            slog.write('\n---')
         return improvement.genes
 
     def __get_improvement(self):

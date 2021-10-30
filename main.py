@@ -6,10 +6,10 @@ from molecular import *
 class Molecular_improvement(Genetic):
     def __init__(self, first_genes, fitness_param, strategies, max_age, pool_size, mutate_after_crossover, 
         crossover_elitism, elitism_rate, freedom_rate, parallelism, local_opt, max_seconds, time_toler,
-        gens_toler, max_gens, threads_per_calc):
+        gens_toler, max_gens, threads_per_calc, save_directory):
         super().__init__(first_genes, fitness_param, strategies, max_age, pool_size, mutate_after_crossover, 
         crossover_elitism, elitism_rate, freedom_rate, parallelism, local_opt, max_seconds, time_toler,
-        gens_toler, max_gens)
+        gens_toler, max_gens, save_directory)
         self.threads_per_calc = threads_per_calc
 
     def get_fitness(self, candidate):
@@ -45,8 +45,8 @@ class Molecular_improvement(Genetic):
     def randomize(parent):
         return randomize(parent.genes)
 
-    #def local_optimize(self, molecule):
-    #    return optg(molecule, self.fitness_param, nthreads = self.pool_size * self.threads_per_calc)
+    def local_optimize(self, molecule):
+        return optg(molecule, self.fitness_param, nthreads = self.pool_size * self.threads_per_calc)
 
     @staticmethod
     def catch(candidate):
@@ -92,6 +92,7 @@ if __name__ == '__main__':
         max_seconds = None,
         time_toler = None,
         gens_toler = None,
-        max_gens = None
+        max_gens = None,
+        save_directory = None
     )
     Al10_test.run()

@@ -155,7 +155,8 @@ class Genetic(ABC):
                 parent = candidates[parent_index]
                 for _ in range(self.freedom_rate):
                     donor = random.choices(sorted_candidates, self.crossover_elitism)[0]
-                    child = random.choices(self.strategies.strategies, self.strategies.rate)[0]\
+                    child = Chromosome()
+                    child.genes = random.choices(self.strategies.strategies, self.strategies.rate)[0]\
                         (parent, donor, self.mutate_after_crossover, self.mutate_methods, self.first_parent)
                     parent = child
                 child.label = label
@@ -175,10 +176,11 @@ class Genetic(ABC):
             return candidate.genes
         new_genes = self.local_optimize(candidate)
         new_fitness = self.get_fitness(candidate)
-        return Chromosome(new_genes, new_fitness, [self.local_optimize], 0, candidate.lineage + [candidate])
+        return Chromosome(new_genes, new_fitness, candidate.strategy + [self.local_optimize], 0, 
+            candidate.lineage + [candidate])
 
     def local_optimize(self, candidate):
-        return candidate.genes
+        pass
 
     def __generate_parent(self, queue=None, label:str=None):
         while True:

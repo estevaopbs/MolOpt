@@ -5,10 +5,10 @@ from molecular import *
 
 class Molecular_improvement(Genetic):
     def __init__(self, first_genes, fitness_param, strategies, max_age, pool_size, mutate_after_crossover, 
-        crossover_elitism, elitism_rate, freedom_rate, parallelism, max_seconds, time_toler,
+        crossover_elitism, elitism_rate, freedom_rate, parallelism, local_opt, max_seconds, time_toler,
         gens_toler, max_gens, threads_per_calc):
         super().__init__(first_genes, fitness_param, strategies, max_age, pool_size, mutate_after_crossover, 
-        crossover_elitism, elitism_rate, freedom_rate, parallelism, max_seconds, time_toler,
+        crossover_elitism, elitism_rate, freedom_rate, parallelism, local_opt, max_seconds, time_toler,
         gens_toler, max_gens)
         self.threads_per_calc = threads_per_calc
 

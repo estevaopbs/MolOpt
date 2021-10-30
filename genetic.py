@@ -185,7 +185,7 @@ class Genetic(ABC):
     def __generate_parent(self, queue=None, label:str=None):
         while True:
             try:
-                parent = Create(self.first_parent)
+                parent = self.create_methods(self.first_parent)
                 parent.label = label
                 parent.fitness = self.get_fitness(parent)
                 break

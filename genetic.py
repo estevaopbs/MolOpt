@@ -47,7 +47,7 @@ class Create:
         self.methods = methods
         self.rate = methods_rate
 
-    def __call__(self, parent, donor=None, mutate_after_crossover=None, mutate_methods=None, first_parent=None):
+    def __call__(self, parent=None, donor=None, mutate_after_crossover=None, mutate_methods=None, first_parent=None):
         child = Chromosome()
         method = random.choices(self.methods, self.rate)[0]
         child.genes = method(first_parent)
@@ -185,7 +185,7 @@ class Genetic(ABC):
     def __generate_parent(self, queue=None, label:str=None):
         while True:
             try:
-                parent = self.create_methods(self.first_parent)
+                parent = self.create_methods(first_parent=self.first_parent)
                 parent.label = label
                 parent.fitness = self.get_fitness(parent)
                 break

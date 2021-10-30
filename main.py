@@ -9,10 +9,11 @@ class Molecular_improvement(Genetic):
             return - molecule.output_values[self.fitness_param]
         return - float(molecule.get_value([self.fitness_param], nthreads=self.threads_per_calc)[self.fitness_param])
 
-    def flocal_optimizate(self, molecule):
-        return optg(molecule, self.fitness_param, nthreads = self.pool_size * self.threads_per_calc)
+    #def local_optimize(self, molecule):
+    #    return optg(molecule, self.fitness_param, nthreads = self.pool_size * self.threads_per_calc)
 
-    def catch(self, candidate):
+    @staticmethod
+    def catch(candidate):
         os.remove(f'data/{candidate.label}.inp')
         os.remove(f'data/{candidate.label}.out')
         os.remove(f'data/{candidate.label}.xml')

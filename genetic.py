@@ -95,7 +95,7 @@ class Genetic(ABC):
                 self.crossover_methods = strategy
         
     @abstractmethod
-    def get_fitness(genes):
+    def get_fitness(self, genes):
         pass
 
     @staticmethod

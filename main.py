@@ -76,7 +76,7 @@ if __name__ == '__main__':
             Molecular_improvement.crossover_n], 
             [1, 1, 1]
             )
-    create_methods = Create([Molecular_improvement.randomize, mutate_first], [1, 1])
+    create_methods = Create([Molecular_improvement.randomize, mutate_first, mutate_best], [1, 0.5, 0.5])
     strategies = Strategies([mutate_methods, crossover_methods, create_methods], [1, 1, 0])
     Al10_test = Molecular_improvement(
         first_genes = Molecule.load('al_n.inp', (0, 3)),

@@ -9,8 +9,7 @@ import random
 import copy
 import os
 
-"""Problem-specific genetic algorithm to deal with molecular geometry optimization using Molpro and molecular module
-molecular
+"""Genetic algorithm engine
 """
 
 class Chromosome:
@@ -94,7 +93,7 @@ def mutate_first(first_parent):
     pass
 
 
-def mutate_best(best_parent):
+def mutate_best(best_candidate):
     pass
 
 
@@ -122,6 +121,7 @@ class Genetic(ABC):
         self.start_time = None
         self.first_parent = None
         self.lineage_ids = []
+        self.best_candidate = None
         for strategy in strategies.strategies:
             if type(strategy) is Mutate:
                 self.mutate_methods = strategy
@@ -131,6 +131,8 @@ class Genetic(ABC):
                 self.crossover_methods = strategy
         if mutate_first in self.create_methods.methods:
             self.create_methods.methods[self.create_methods.methods.index(mutate_first)] = self.mutate_first
+        if mutate_best in self.create_methods.methods:
+            self.create_methods.methods[self.create_methods.methods.index(mutate_best)] = self.mutate_best
         
     @abstractmethod
     def get_fitness(self, candidate):
@@ -141,7 +143,10 @@ class Genetic(ABC):
         pass
 
     def mutate_first(self, first_parent):
-        return self.mutate_methods(first_parent).genes
+        return self.mutate_methods(self.first_parent).genes
+
+    def mutate_best(self, best_candidate):
+        return self.mutate_methods(self.best_candidate).genes
 
     @staticmethod
     def catch(candidate):
@@ -214,6 +219,7 @@ class Genetic(ABC):
         for timed_out, improvement in opt_func():
             self.save(improvement, f'{n}_{improvement.label}', f'{self.save_directory}/improvements')
             improvement.lineage.append(improvement)
+            self.best_candidate = improvement
             timediff = time.time() - self.start_time
             self.display(improvement, timediff)
             with open(f'{self.save_directory}/improvements_strategies.log', 'a') as islog:

@@ -117,7 +117,7 @@ class Genetic(ABC):
         self.time_toler = time_toler
         self.gens_toler = gens_toler
         self.max_gens = max_gens
-        self.save_directory = f"{datetime.now().strftime('%Y/%m/%d %H:%M')}" if save_directory == None \
+        self.save_directory = f"{datetime.now().strftime('%Y_%m_%d %H:%M')}" if save_directory == None \
             else save_directory
         self.start_time = None
         self.first_parent = None
@@ -202,15 +202,15 @@ class Genetic(ABC):
         return parent
 
     def run(self):
+        os.mkdir(self.save_directory)
+        os.mkdir(f'{self.save_directory}/lineage')
+        os.mkdir(f'{self.save_directory}/improvements')
         self.start_time = time.time()
         self.first_parent = Chromosome(self.first_genes, label = '0_0')
         self.first_parent.fitness = self.get_fitness(self.first_parent)
         opt_func = self.__get_improvement_mp if self.parallelism else self.__get_improvement
         n = 0
         j = 0
-        os.mkdir(self.save_directory)
-        os.mkdir(f'{self.save_directory}/lineage')
-        os.mkdir(f'{self.save_directory}/improvements')
         for timed_out, improvement in opt_func():
             self.save(improvement, f'{n}_{improvement.label}', f'{self.save_directory}/improvements')
             improvement.lineage.append(improvement)

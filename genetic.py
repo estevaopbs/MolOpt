@@ -63,7 +63,7 @@ class Crossover:
         self.rate = methods_rate
 
 
-def mutate_first(genes):
+def mutate_first():
     pass
 
 
@@ -94,9 +94,9 @@ class Genetic(ABC):
                 self.create_methods = strategy
             elif type(strategy) is Crossover:
                 self.crossover_methods = strategy
-
-        def mutate_first(first_genes):
-            return random.choices(self.mutate_methods.methods, self.mutate_methods.rate)[0](self.first_genes)
+        if mutate_first in self.create_methods:
+            self.create_methods[self.create_methods.index(mutate_first)] = self.mutate_first
+            pass
         
     @abstractmethod
     def get_fitness(self, candidate):
@@ -105,6 +105,9 @@ class Genetic(ABC):
     @abstractmethod
     def save(self, candidate, file_name, directory):
         pass
+
+    def mutate_first(self, first_genes):
+        return random.choices(self.mutate_methods.methods, self.mutate_methods.rate)[0](first_genes)
 
     @staticmethod
     def catch(candidate):
@@ -116,8 +119,6 @@ class Genetic(ABC):
        
     def load(self) -> Chromosome:
         return Chromosome(self.first_genes, self.first_parent.fitness, [self.load])
-
-    
 
     def __get_child(self, candidates, parent_index, queue:mp.Queue=None, child_index:int=None, label:str=None):
         sorted_candidates = copy.copy(candidates)
@@ -308,7 +309,7 @@ class Genetic(ABC):
                 yield True, best_parent
             if self.max_gens is not None and gen > self.max_gens:
                 yield True, best_parent
-            if self.gen_toler is not None and gen - last_improvement_gen > self.gen_toler + 1:
+            if self.gens_toler is not None and gen - last_improvement_gen > self.gens_toler + 1:
                 yield True, best_parent
             if self.time_toler is not None and time.time() - last_improvement_time > self.time_toler:
                 yield True, best_parent

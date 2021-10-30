@@ -147,12 +147,12 @@ class Genetic(ABC):
         return child
 
     def __local_optimization(self, candidate:Chromosome) -> Chromosome:
-        new_genes = self.get_local_optimization(candidate.genes)
-        new_fitness = self.get_local_optimization(new_genes)
-        return Chromosome(new_genes, new_fitness, [optg], 0, candidate.lineage + [candidate])
+        new_genes = self.local_optimize(candidate.genes)
+        new_fitness = self.local_optimize(new_genes)
+        return Chromosome(new_genes, new_fitness, [self.local_optimize], 0, candidate.lineage + [candidate])
 
-    def local_optimize(self, molecule):
-        return molecule
+    def local_optimize(self, genes):
+        return genes
 
     def __generate_parent(self, queue=None, label:str=None):
         while True:
@@ -261,13 +261,14 @@ class Genetic(ABC):
                 historical_fitnesses.append(child.fitness)
 
     def __get_improvement_mp(self):
-        elit_size = len(self.elitism_rate) if self.litism_rate is not None else None
+        elit_size = len(self.elitism_rate) if self.elitism_rate is not None else None
         last_improvement_time = self.start_time
         queue = mp.Queue(maxsize=self.pool_size - 1)
         processes = []
         gen = 0
-        if sum(self.elitism_rate) > self.pool_size:
-            raise Exception('Minimal elitism exceeds pool size. Increase the pool size or reduce the elit size.')
+        if elit_size is not None:
+            if sum(self.elitism_rate) > self.pool_size:
+                raise Exception('Minimal elitism exceeds pool size. Increase the pool size or reduce the elit size.')
         best_parent = self.__local_optimization(self.first_parent)
         yield self.max_seconds is not None and time.time() - self.start_time > self.max_seconds, best_parent
         best_parent.lineage = []

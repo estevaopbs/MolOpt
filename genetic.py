@@ -67,7 +67,6 @@ class Mutate:
         method = random.choices(self.methods, self.rate)[0]
         child.genes = method(parent)
         child.strategy.append(method)
-        child.lineage += parent.lineage
         return child
 
 
@@ -81,7 +80,7 @@ class Crossover:
     def __call__(self, parent, donor, mutate_after_crossover, mutate_methods, first_parent=None):
         child = Chromosome()
         method = random.choices(self.methods, self.rate)[0]
-        child.lineage += parent.lineage + donor.lineage
+        child.lineage += donor.lineage
         child.lineage.append(donor)
         child.genes = method(parent, donor)
         child.strategy.append(method)
@@ -96,7 +95,8 @@ def mutate_first():
 
 class Genetic(ABC):
     def __init__(self, first_genes, fitness_param, strategies, max_age, pool_size, mutate_after_crossover, 
-        crossover_elitism, elitism_rate, freedom_rate, parallelism, max_seconds, time_toler, gens_toler, max_gens):
+        crossover_elitism, elitism_rate, freedom_rate, parallelism, local_opt, max_seconds, time_toler, gens_toler, 
+        max_gens):
         self.first_genes = first_genes
         self.fitness_param = fitness_param
         self.strategies = strategies
@@ -107,6 +107,7 @@ class Genetic(ABC):
         self.elitism_rate = elitism_rate
         self.freedom_rate = freedom_rate
         self.parallelism = parallelism
+        self.local_opt = local_opt
         self.max_seconds = max_seconds
         self.time_toler = time_toler
         self.gens_toler = gens_toler
@@ -153,13 +154,13 @@ class Genetic(ABC):
             try:
                 parent = candidates[parent_index]
                 for _ in range(self.freedom_rate):
-                    donor = random.choices(sorted_candidates, self.crossover_elitism)
+                    donor = random.choices(sorted_candidates, self.crossover_elitism)[0]
                     child = random.choices(self.strategies.strategies, self.strategies.rate)[0]\
                         (parent, donor, self.mutate_after_crossover, self.mutate_methods, self.first_parent)
                     parent = child
                 child.label = label
                 child.fitness = self.get_fitness(child)
-                child.lineage.append(parent)
+                child.lineage += parent.lineage + [parent]
                 child.lineage = list(set(child.lineage))
                 child.lineage = [ancestor for ancestor in child.lineage if ancestor.label not in self.lineage_ids]
                 break
@@ -170,6 +171,8 @@ class Genetic(ABC):
         return child
 
     def __local_optimization(self, candidate:Chromosome) -> Chromosome:
+        if not self.local_opt:
+            return candidate.genes
         new_genes = self.local_optimize(candidate)
         new_fitness = self.get_fitness(candidate)
         return Chromosome(new_genes, new_fitness, [self.local_optimize], 0, candidate.lineage + [candidate])
@@ -224,7 +227,7 @@ class Genetic(ABC):
         return improvement.genes
 
     def __get_improvement(self):
-        best_parent = self.local_optimization(self.first_parent)
+        best_parent = self.local_optimization(self.load())
         yield self.max_seconds is not None and time.time() - self.start_time > self.max_seconds, best_parent
         best_parent.lineage = []
         parents = [best_parent]
@@ -293,7 +296,7 @@ class Genetic(ABC):
         if elit_size is not None:
             if sum(self.elitism_rate) > self.pool_size:
                 raise Exception('Minimal elitism exceeds pool size. Increase the pool size or reduce the elit size.')
-        best_parent = self.__local_optimization(self.first_parent)
+        best_parent = self.__local_optimization(self.load())
         yield self.max_seconds is not None and time.time() - self.start_time > self.max_seconds, best_parent
         best_parent.lineage = []
         parents = [best_parent]

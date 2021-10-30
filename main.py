@@ -4,10 +4,13 @@ from molecular import *
 
 
 class Molecular_improvement(Genetic):
-    def get_fitness(self, molecule):
+    def get_fitness(self, candidate):
+        molecule = candidate.genes
+        file_name = candidate.label
         if molecule.was_optg:
             return - molecule.output_values[self.fitness_param]
-        return - float(molecule.get_value([self.fitness_param], nthreads=self.threads_per_calc)[self.fitness_param])
+        return - float(molecule.get_value([self.fitness_param], document=file_name, 
+            nthreads=self.threads_per_calc)[self.fitness_param])
 
     #def local_optimize(self, molecule):
     #    return optg(molecule, self.fitness_param, nthreads = self.pool_size * self.threads_per_calc)

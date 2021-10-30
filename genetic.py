@@ -29,8 +29,7 @@ class Chromosome:
 
     @property
     def strategy_str(self): 
-        return str([[strategy[0].__class__.__name__, strategy[0].log_dict[strategy[1]]] for strategy in self.strategy])\
-            .replace("'", "")
+        return str([strategy.__name__ for strategy in self.strategy]).replace("'", "")
 
 
 class Strategies: 
@@ -95,7 +94,7 @@ class Genetic(ABC):
                 self.crossover_methods = strategy
         
     @abstractmethod
-    def get_fitness(self, genes):
+    def get_fitness(self, candidate):
         pass
 
     @staticmethod
@@ -135,7 +134,7 @@ class Genetic(ABC):
                         child.genes = child.strategy[-1](child)
                     parent = child
                 child.label = label
-                child.fitness = self.get_fitness(child.genes)
+                child.fitness = self.get_fitness(child)
                 child.lineage = parent.lineage
                 child.lineage.append(parent)
                 child.lineage = [ancestor for ancestor in child.lineage if ancestor.label not in self.lineage_ids]
@@ -147,12 +146,12 @@ class Genetic(ABC):
         return child
 
     def __local_optimization(self, candidate:Chromosome) -> Chromosome:
-        new_genes = self.local_optimize(candidate.genes)
-        new_fitness = self.local_optimize(new_genes)
+        new_genes = self.local_optimize(candidate)
+        new_fitness = self.get_fitness(candidate)
         return Chromosome(new_genes, new_fitness, [self.local_optimize], 0, candidate.lineage + [candidate])
 
-    def local_optimize(self, genes):
-        return genes
+    def local_optimize(self, candidate):
+        return candidate.genes
 
     def __generate_parent(self, queue=None, label:str=None):
         while True:
@@ -161,7 +160,7 @@ class Genetic(ABC):
                 parent.strategy.append(random.choices(self.create_methods.methods, self.create_methods.rate)[0])
                 parent.genes = parent.strategy[0](self.first_genes)
                 parent.label = label
-                parent.fitness = self.get_fitness(parent.genes, self.fitness_param, self.threads_per_calculation)
+                parent.fitness = self.get_fitness(parent)
                 break
             except:
                 self.catch(parent)
@@ -171,7 +170,8 @@ class Genetic(ABC):
 
     def run(self):
         self.start_time = time.time()
-        self.first_parent = Chromosome(self.first_genes, self.get_fitness(self.first_genes), label = '0_0')
+        self.first_parent = Chromosome(self.first_genes, label = '0_0')
+        self.first_parent.fitness = self.get_fitness(self.first_parent)
         opt_func = self.__get_improvement_mp if self.parallelism else self.__get_improvement
         n = 0
         j = 0
@@ -298,7 +298,7 @@ class Genetic(ABC):
             gen += 1
             if self.max_seconds is not None and time.time() - self.start_time > self.max_seconds:
                 yield True, best_parent
-            if self.max_gen is not None and gen > self.max_gen:
+            if self.max_gens is not None and gen > self.max_gens:
                 yield True, best_parent
             if self.gen_toler is not None and gen - last_improvement_gen > self.gen_toler + 1:
                 yield True, best_parent

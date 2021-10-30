@@ -43,7 +43,7 @@ class Molecular_improvement(Genetic):
 
     @staticmethod
     def randomize(parent):
-        return randomize(parent)
+        return randomize(parent.genes)
 
     #def local_optimize(self, molecule):
     #    return optg(molecule, self.fitness_param, nthreads = self.pool_size * self.threads_per_calc)
@@ -74,7 +74,7 @@ if __name__ == '__main__':
             Molecular_improvement.crossover_n], 
             [1, 1, 1]
             )
-    create_methods = Create([Molecular_improvement.randomize, Molecular_improvement.mutate_first], [1, 1])
+    create_methods = Create([Molecular_improvement.randomize, mutate_first], [1, 1])
     strategies = Strategies([mutate_methods, crossover_methods, create_methods], [1, 1, 0])
     Al10_test = Molecular_improvement(
         first_genes = Molecule.load('al_n.inp', (0, 3)),

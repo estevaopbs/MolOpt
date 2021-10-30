@@ -39,12 +39,20 @@ class Strategies:
         self.strategies = strategies
         self.rate = strategies_rate
 
+
 class Create:
     __slots__ = ('methods', 'rate')
 
     def __init__(self, methods:list, methods_rate:list):
         self.methods = methods
         self.rate = methods_rate
+
+    def __call__(self, parent, donor=None, mutate_after_crossover=None, mutate_methods=None, first_parent=None):
+        child = Chromosome()
+        method = random.choices(self.methods, self.rate)[0]
+        child.genes = method(first_parent)
+        child.strategy.append(method)
+        return child
 
 
 class Mutate:
@@ -54,6 +62,14 @@ class Mutate:
         self.methods = methods
         self.rate = methods_rate
 
+    def __call__(self, parent, donor=None, mutate_after_crossover=None, mutate_methods=None, first_parent=None):
+        child = Chromosome()
+        method = random.choices(self.methods, self.rate)[0]
+        child.genes = method(parent)
+        child.strategy.append(method)
+        child.lineage += parent.lineage
+        return child
+
 
 class Crossover:
     __slots__ = ('methods', 'rate')
@@ -61,6 +77,17 @@ class Crossover:
     def __init__(self, methods:list, methods_rate:list):
         self.methods = methods
         self.rate = methods_rate
+
+    def __call__(self, parent, donor, mutate_after_crossover, mutate_methods, first_parent=None):
+        child = Chromosome()
+        method = random.choices(self.methods, self.rate)[0]
+        child.lineage += parent.lineage + donor.lineage
+        child.lineage.append(donor)
+        child.genes = method(parent, donor)
+        child.strategy.append(method)
+        if mutate_after_crossover:
+            return mutate_methods(child)
+        return child
 
 
 def mutate_first():
@@ -105,8 +132,8 @@ class Genetic(ABC):
     def save(self, candidate, file_name, directory):
         pass
 
-    def mutate_first(self, first_genes):
-        return random.choices(self.mutate_methods.methods, self.mutate_methods.rate)[0](first_genes)
+    def mutate_first(self, first_parent):
+        return random.choices(self.mutate_methods.methods, self.mutate_methods.rate)[0](first_parent)
 
     @staticmethod
     def catch(candidate):
@@ -126,25 +153,14 @@ class Genetic(ABC):
             try:
                 parent = candidates[parent_index]
                 for _ in range(self.freedom_rate):
-                    child = Chromosome()
-                    strategy = random.choices(self.strategies.strategies, self.strategies.rate)[0]
-                    method = random.choices(strategy.methods, strategy.rate)[0]
-                    if isinstance(strategy, Crossover):
-                        donor = random.choices(sorted_candidates, self.crossover_elitism)[0]  
-                    else:
-                        donor = None
-                        child.lineage += donor.lineage
-                        child.lineage.append(donor)
-                    child.genes = method(parent, donor)
-                    child.strategy.append(method)
-                    if isinstance(strategy, Crossover) and self.mutate_after_crossover:
-                        child.strategy.append(random.choices(self.mutate_methods.methods, self.mutate_methods.rate)[0])
-                        child.genes = child.strategy[-1](child)
+                    donor = random.choices(sorted_candidates, self.crossover_elitism)
+                    child = random.choices(self.strategies.strategies, self.strategies.rate)[0]\
+                        (parent, donor, self.mutate_after_crossover, self.mutate_methods, self.first_parent)
                     parent = child
                 child.label = label
                 child.fitness = self.get_fitness(child)
-                child.lineage = parent.lineage
                 child.lineage.append(parent)
+                child.lineage = list(set(child.lineage))
                 child.lineage = [ancestor for ancestor in child.lineage if ancestor.label not in self.lineage_ids]
                 break
             except:
@@ -166,7 +182,7 @@ class Genetic(ABC):
             try:
                 parent = Chromosome()
                 parent.strategy.append(random.choices(self.create_methods.methods, self.create_methods.rate)[0])
-                parent.genes = parent.strategy[0]()
+                parent.genes = parent.strategy[0](self.first_parent)
                 parent.label = label
                 parent.fitness = self.get_fitness(parent)
                 break

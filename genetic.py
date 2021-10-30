@@ -216,7 +216,7 @@ class Genetic(ABC):
                     if not ancestor.label in self.lineage_ids:
                         self.lineage_ids.append(ancestor.label)
                         lslog.write(f'{ancestor.strategy_str}\t{ancestor.fitness}\t{timediff}\n')
-                        self.save(ancestor.genes, f'{j}_{ancestor.label}', 'lineage')
+                        self.save(ancestor, f'{j}_{ancestor.label}', 'lineage')
                         j += 1
             n += 1
             if timed_out:

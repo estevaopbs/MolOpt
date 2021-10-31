@@ -9,8 +9,10 @@ import random
 import copy
 import os
 
+
 """Genetic algorithm engine
 """
+
 
 class Chromosome:
     """Object that represents the candidates

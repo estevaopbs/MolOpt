@@ -2,20 +2,8 @@ from molopt import *
 
 
 if __name__ == '__main__':
-    mutate_methods = Mutate(
-        [
-            MolOpt.swap_mutate, 
-            MolOpt.mutate_angles, 
-            MolOpt.mutate_distances], 
-            [1, 1, 1]
-        )
-    crossover_methods = Crossover(
-        [
-            MolOpt.crossover_1, 
-            MolOpt.crossover_2, 
-            MolOpt.crossover_n], 
-            [1, 1, 1]
-            )
+    mutate_methods = Mutate([MolOpt.swap_mutate, MolOpt.mutate_angles, MolOpt.mutate_distances], [1, 1, 1])
+    crossover_methods = Crossover([MolOpt.crossover_1, MolOpt.crossover_2, MolOpt.crossover_n], [1, 1, 1])
     create_methods = Create([MolOpt.randomize, mutate_first, mutate_best], [1, 0.5, 0.5])
     strategies = Strategies([mutate_methods, crossover_methods, create_methods], [1, 1, 0])
     Al10_test = MolOpt(

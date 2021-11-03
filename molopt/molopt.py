@@ -82,6 +82,8 @@ class MolOpt(Genetic):
         :param save_directory: The directory address relative to __main__ where the outputs will be saved. If its None
             than it will receive the instant of time the running started
         :type save_directory: str
+        :param threads_per_calc: Number of threads useds in each Molpro calculation
+        :type threads_per_calc: int
         
         """
         super().__init__(first_molecule, strategies, max_age, pool_size, mutate_after_crossover, crossover_elitism, 

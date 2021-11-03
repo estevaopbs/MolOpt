@@ -30,7 +30,7 @@ class Molecule:
         :param basis: Hilbert space basis
         :type basis: str
         :param geometry: Z-matrix input
-        :type geometry: list[list[str]]
+        :type geometry: list[list[str | numeric]]
         :param settings: Molpro calculation settings
         :type settings: list[str]
         :param parameters: The values of geometry variables, defaults to dict()

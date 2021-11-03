@@ -2,8 +2,9 @@ import time
 from bisect import bisect_left
 from math import exp
 import multiprocessing as mp
-from typing import TypeVar, Any
+from typing import Any, Tuple, TypeAlias
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from datetime import datetime
 import random
 import copy
@@ -14,27 +15,33 @@ import os
 """
 
 
+numeric = int | float
+Genes = TypeAlias
+Fitness = TypeAlias
+
+
 class Chromosome:
     """Object that represents the candidates
     """
-    Chromosome = TypeVar('Chromosome') 
+    Chromosome = TypeAlias
     __slots__ = ('genes', 'fitness', 'strategy', 'age', 'lineage', 'label')
+    
+    def __init__(self, genes: Any = None, fitness: Any = None, strategy: list[Callable[[Chromosome], Genes]] = [], 
+        age: int = 0, lineage: list = [], label: str = None) -> None:
+        """Initializes the Chromosome object
 
-    def __init__(self, genes: Any = None, fitness: int | float = None, strategy: list = [], 
-        age: int = 0, lineage: list[Chromosome] = [], label: str = None) -> None:
-        """[summary]
-
-        :param genes: [description], defaults to None
+        :param genes: What is wanted to optimize
         :type genes: Any, optional
-        :param fitness: [description], defaults to None
-        :type fitness: int, optional
-        :param strategy: [description], defaults to []
-        :type strategy: list, optional
-        :param age: [description], defaults to 0
+        :param fitness: Value which describes how much the genes fits what is wanted. It can be of any type since it
+            can be compared with > and < and can be printed
+        :type fitness: Any, optional
+        :param strategy: Container which stores the functions used to obtain the current Chromosome, defaults to []
+        :type strategy: list[Callable[[Chromosome], Genes]], optional
+        :param age: How many times the candidate was modificated without having any improvement, defaults to 0
         :type age: int, optional
-        :param lineage: [description], defaults to []
+        :param lineage: The historic of Chromosomes used to find the current Chromosome, defaults to []
         :type lineage: list[Chromosome], optional
-        :param label: [description], defaults to None
+        :param label: A tag which can be used to identify the Chromosome object, defaults to None, defaults to None
         :type label: str, optional
         """        
         self.genes = genes
@@ -46,68 +53,51 @@ class Chromosome:
 
     @property
     def strategy_str(self) -> str:
-        """[summary]
+        """Returns a string which represents the list of the functions used to obtain the current Chromosome object
 
-        :return: [description]
+        :return: String of a list of the names of the functions used to obtain the current Chromosome object
         :rtype: str
-        """        
+        """              
         return str([strategy.__name__ for strategy in self.strategy]).replace("'", "")
 
 
-class Strategies:
-    """[summary]
-    """    
-    __slots__ = ('strategies', 'rate')
-
-    def __init__(self, strategies: list, strategies_rate: list) -> None:
-        """[summary]
-
-        :param strategies: [description]
-        :type strategies: list
-        :param strategies_rate: [description]
-        :type strategies_rate: list
-        """        
-        self.strategies = strategies
-        self.rate = strategies_rate
-
-
 class Mutate:
-    """[summary]
+    """A container for storing mutation functions and its rates. When called it receives a Chromosome and returns
+    a new Chromosome
 
-    :return: [description]
-    :rtype: [type]
-    """    
-    Mutate = TypeVar('Mutate')
+    This is supposed to receive functions which receives a Chromosome object and returns its genes with some random 
+    modification
+
+    :return: Mutated Chromosome
+    :rtype: Chromosome
+    """
     __slots__ = ('methods', 'rate')
     
-    def __init__(self, methods: list, methods_rate: list) -> None:
-        """[summary]
+    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> None:
+        """Initializes the Mutate object by receiving its parameters
 
-        :param methods: [description]
-        :type methods: list
-        :param methods_rate: [description]
-        :type methods_rate: list
-        """        
+        :param methods: Functions which receives a Chromosome object and returns a new genes
+        :type methods: list[Callable[[Chromosome], Genes]]
+        :param methods_rate: The rate the functions tends be randomly chosen when the Mutate object is called. It must 
+            have the same lenght as methods. Suppose methods is [m1, m2, m3] and methods_rate is  [1, 2, 3]. m2 tends to
+            be chosen twice the m1 is and m3 thrice the m1 is
+        :type methods_rate: list[numeric]
+        """
         self.methods = methods
         self.rate = methods_rate
 
-    def __call__(self, parent: Chromosome, donor: Chromosome = None, mutate_after_crossover: bool = None, 
-        mutate_methods: Mutate = None, first_parent: Chromosome = None) -> Chromosome:
-        """[summary]
+    def __call__(self, parent: Chromosome, donor: Any = None, mutate_after_crossover: Any = None, 
+        mutate_methods: Any = None, first_parent: Any = None) -> Chromosome:
+        """Makes the Mutate object callable receiving a Chromosome and returning a Chromosome
 
-        :param parent: [description]
+        It only deals with the parameter parent. All the remaining parameters can receive absolutely anything without 
+        changing the result. It randomly choices one of the methods and returns the result of passing parent  to it. The
+        random choice takes into consideration the methods_rate of the current object
+
+        :param parent: Parent Chromosome which will be passed to mutation functions
         :type parent: Chromosome
-        :param donor: [description], defaults to None
-        :type donor: Chromosome, optional
-        :param mutate_after_crossover: [description], defaults to None
-        :type mutate_after_crossover: bool, optional
-        :param mutate_methods: [description], defaults to None
-        :type mutate_methods: Mutate, optional
-        :param first_parent: [description], defaults to None
-        :type first_parent: Chromosome, optional
-        :return: [description]
         :rtype: Chromosome
-        """        
+        """
         child = Chromosome()
         method = random.choices(self.methods, self.rate)[0]
         child.genes = method(parent)
@@ -116,41 +106,50 @@ class Mutate:
 
 
 class Crossover:
-    """[summary]
+    """A container for storing crossover functions and its rates. When called it receives two Chromosome objects and 
+    returns a new Chromosome
 
-    :return: [description]
-    :rtype: [type]
-    """    
+    This class is supposed to receive functions which receive two Chromosome objects and returns a random combination of
+    their genes
+
+    :return: Child Chromosome
+    :rtype: Chromosome
+    """
     __slots__ = ('methods', 'rate')
 
-    def __init__(self, methods: list, methods_rate: list):
-        """[summary]
+    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> None:
+        """Initializes the Crossover object by receiving its parameters
 
-        :param methods: [description]
-        :type methods: list
-        :param methods_rate: [description]
-        :type methods_rate: list
+        :param methods: Functions which receives two Chromosome objects and returns a new genes
+        :type methods: list[Callable[[Chromosome]
+        :param methods_rate: The rate the functions tends be randomly chosen when the Crossover object is called. It 
+            must have the same lenght as methods. Suppose methods is [m1, m2, m3] and methods_rate is  [1, 2, 3]. m2 
+            tends to be chosen twice the m1 is and m3 thrice the m1 is.
+        :type methods_rate: list[numeric]
         """
         self.methods = methods
         self.rate = methods_rate
 
     def __call__(self, parent: Chromosome, donor: Chromosome, mutate_after_crossover: bool, mutate_methods: Mutate, 
         first_parent: Chromosome = None) -> Chromosome:
-        """[summary]
+        """Makes the Crossover object callable by receiving its input parameters and returning a new Chromosome
 
-        :param parent: [description]
+        The parameter first_parent doesn't affect this method. It can receive absolutelly anything without changing the
+        result. It randomly choices one of the methods and returns the result of passing parent and donor to it. The 
+        random choice takes into consideration the methods_rate of the current object
+
+        :param parent: Parent Chromosome
         :type parent: Chromosome
-        :param donor: [description]
+        :param donor: Chromosome which genes are supposed to be combined with parent's genes
         :type donor: Chromosome
-        :param mutate_after_crossover: [description]
+        :param mutate_after_crossover: If its True, after Crossover the child Chromosome will be passed to 
+            mutate_methods before return it, if its False so it will be returned immediatly after crossover
         :type mutate_after_crossover: bool
-        :param mutate_methods: [description]
+        :param mutate_methods: Mutate object which child Chromosome will be passade if mutate_after_crossover is True
         :type mutate_methods: Mutate
-        :param first_parent: [description], defaults to None
-        :type first_parent: Chromosome, optional
-        :return: [description]
+        :return: Child Chromosome which genes are supposed to be a combination between parent's and donor's
         :rtype: Chromosome
-        """        
+        """
         child = Chromosome()
         method = random.choices(self.methods, self.rate)[0]
         child.lineage += donor.lineage
@@ -163,41 +162,44 @@ class Crossover:
 
 
 class Create:
-    """[summary]
+    """A container for storing genes creation functions and its rates. When called it receives the first_parent 
+    Chromosome and returns a new Chromosome
 
-    :return: [description]
-    :rtype: [type]
-    """    
+    This class is supposed to receive functions which receive a generic parent Chromosome and return a whole new genes 
+    without any bound to the parent's one. The exceptions are mutate_best and mutate_first, which respectively returns
+    a result of passing the best and the first parent, respectively to the mutate object
+
+    :return: New Chromosome object with the created genes
+    :rtype: Chromosome
+    """
     __slots__ = ('methods', 'rate')
 
-    def __init__(self, methods: list, methods_rate: list) -> None:
-        """[summary]
+    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> None:
+        """Initializes the Crossover object by receiving its parameters
 
-        :param methods: [description]
-        :type methods: list
-        :param methods_rate: [description]
-        :type methods_rate: list
-        """        
+        :param methods: Functions which receives the first_parent Chromosome and returns a new genes
+        :type methods: list[Callable[[Chromosome], Genes]]
+        :param methods_rate: The rate the functions tends be randomly chosen when the Crossover object is called. It 
+            must have the same lenght as methods. Suppose methods is [m1, m2, m3] and methods_rate is  [1, 2, 3]. m2 
+            tends to be chosen twice the m1 is and m3 thrice the m1 is.
+        :type methods_rate: list[numeric]
+        """
         self.methods = methods
         self.rate = methods_rate
 
     def __call__(self, parent: Chromosome = None, donor: Chromosome = None, mutate_after_crossover: bool = None, 
-        mutate_methods: Mutate = None, first_parent = None) -> Chromosome:
-        """[summary]
+        mutate_methods: Mutate = None, first_parent: Chromosome = None) -> Chromosome:
+        """Makes the Create method callable by receiving the first_parent input parameter and returning a new Chromosome
 
-        :param parent: [description], defaults to None
-        :type parent: [type], optional
-        :param donor: [description], defaults to None
-        :type donor: [type], optional
-        :param mutate_after_crossover: [description], defaults to None
-        :type mutate_after_crossover: [type], optional
-        :param mutate_methods: [description], defaults to None
-        :type mutate_methods: [type], optional
-        :param first_parent: [description], defaults to None
-        :type first_parent: [type], optional
-        :return: [description]
+        It only deals with the parameter first_parent. All the remaining parameters can receive absolutely anything 
+        without changing the result. It randomly choices one of the methods and returns the result of passing  
+        first_parent to it. The random choice takes into consideration the methods_rate of the current object
+
+        :param first_parent: It's designed to receive the first candidate created
+        :type first_parent: Chromosome
+        :return: New Chromosome object with the created genes
         :rtype: Chromosome
-        """        
+        """
         child = Chromosome()
         method = random.choices(self.methods, self.rate)[0]
         child.genes = method(first_parent)
@@ -205,74 +207,164 @@ class Create:
         return child
 
 
-def mutate_first(first_parent):
-    """[summary]
+class Strategies:
+    """A container for sotoring the candidate generation strategies (Create, Mutate and Crossover objects) and its rates
 
-    :param first_parent: [description]
-    :type first_parent: [type]
+    It must receive only one of each generation strategy (Create, Mutate and Crossover) object.
+
+    :return: New Chromosome object with the genes generated by the strategy randomly selected
+    :rtype: Chromosome
     """    
+    __slots__ = ('strategies', 'rate')
+
+    def __init__(self, strategies: Tuple[Mutate, Crossover, Create], strategies_rate: list[numeric]) -> None:
+        """Initializes the Strategies object by receiving its parameters
+
+        :param strategies: A list with Create, Mutate and Crossover objects
+        :type strategies: Tuple[Create, Mutate, Crossover]
+        :param strategies_rate: The rate the Mutate, Crossover and Create objects tends be randomly chosen when the 
+            Strategies object is called. It must have the same lenght as methods. Suppose strategies is [s1, s2, s3] and 
+            strategies_rate is  [1, 2, 3]. s2 tends to be chosen twice the s1 is and s3 thrice the s1 is.
+        :type strategies_rate: list[numeric]
+        """
+        self.strategies = strategies
+        self.rate = strategies_rate
+
+    def __call__(self, parent: Chromosome, donor: Chromosome, mutate_after_crossover: bool, mutate_methods: Mutate, 
+        first_parent: Chromosome) -> Chromosome:
+        """Makes the Create method callable by receiving its input parameters and returning a new Chromosome
+
+        Randomly choices one of the methods and returns the result of passing the inputs to it. The random choice takes
+        into consideration the strategies_rate of the current object.
+
+        :param parent: Parent Chromosome
+        :type parent: Chromosome
+        :param donor: Chromosome which genes are supposed to be combined with parent's genes
+        :type donor: Chromosome
+        :param mutate_after_crossover: If its True, after Crossover the child Chromosome will be passed to 
+            mutate_methods before return it, if its False so it will be returned immediatly after crossover
+        :type mutate_after_crossover: bool
+        :param mutate_methods: Mutate object which child Chromosome will be passade if mutate_after_crossover is True
+        :type mutate_methods: Mutate
+        :param first_parent: It's designed to receive the first candidate created
+        :type first_parent: Chromosome
+        :return: New Chromosome object with the genes generated by the strategy randomly selected
+        :rtype: Chromosome
+        """        
+        return random.choices(self.strategies, self.rate)(parent, donor, mutate_after_crossover, mutate_methods,
+            first_parent)
+
+
+def mutate_first(first_parent: Chromosome) -> Genes:
+    """Creation function that receives the Chromosome of the first created parent and pass it to the Mutate object to 
+    return the result
+
+    This function is actually a void, it exists only to be called by import and to be override by the actual 
+    mutate_first function
+
+    :param first_parent: First created candidate
+    :type first_parent: Chromosome
+    :return: Mutated genes of the first candidate
+    :rtype: genes
+    """
     pass
 
 
-def mutate_best(best_candidate):
-    """[summary]
+def mutate_best(best_candidate: Chromosome) -> Genes:
+    """Creation function that receives the Chromosome of the best candidate and pass it to the Mutate object to return 
+    the result
 
-    :param best_candidate: [description]
-    :type best_candidate: [type]
-    """    
+    This function is actually a void, it exists only to be called by import and to be override by the actual mutate_best
+    function
+
+    :param best_candidate: Best candidate
+    :type best_candidate: Chromosome
+    :return: Mutated genes of the best candidate
+    :rtype: genes
+    """
     pass
 
 
 class Genetic(ABC):
-    """[summary]
+    """Genetic algorithm abstract class
 
-    :param ABC: [description]
-    :type ABC: [type]
+    This abstract class provides a framework for creating problem-specific genetic algorithms. To use it you must create
+    a class that inherits it. The class that inherits it must have at least two methods: get_fitness and save.
+    
+    :param ABC: Helper class that provides a standard way to create an abstract class using inheritance.
+    :type ABC: class
     """
     __slots__ = ('first_genes', 'fitness_param', 'strategies', 'max_age', 'pool_size', 'mutate_after_crossover', 
         'crossover_elitism', 'elitism_rate', 'freedom_rate', 'parallelism', 'local_opt', 'max_seconds', 'time_toler', 
         'gens_toler', 'max_gens', 'save_directory', 'start_time', 'first_parent', 'lineage_ids', 'best_candidate', 
         'mutate_methods', 'create_methods', 'crossover_methods')
-    def __init__(self, first_genes, fitness_param, strategies, max_age, pool_size, mutate_after_crossover, 
-        crossover_elitism, elitism_rate, freedom_rate, parallelism, local_opt, max_seconds, time_toler, gens_toler, 
-        max_gens, save_directory):
-        """[summary]
 
-        :param first_genes: [description]
-        :type first_genes: [type]
-        :param fitness_param: [description]
-        :type fitness_param: [type]
-        :param strategies: [description]
-        :type strategies: [type]
-        :param max_age: [description]
-        :type max_age: [type]
-        :param pool_size: [description]
-        :type pool_size: [type]
-        :param mutate_after_crossover: [description]
-        :type mutate_after_crossover: [type]
-        :param crossover_elitism: [description]
-        :type crossover_elitism: [type]
-        :param elitism_rate: [description]
-        :type elitism_rate: [type]
-        :param freedom_rate: [description]
-        :type freedom_rate: [type]
-        :param parallelism: [description]
-        :type parallelism: [type]
-        :param local_opt: [description]
-        :type local_opt: [type]
-        :param max_seconds: [description]
-        :type max_seconds: [type]
-        :param time_toler: [description]
-        :type time_toler: [type]
-        :param gens_toler: [description]
-        :type gens_toler: [type]
-        :param max_gens: [description]
-        :type max_gens: [type]
-        :param save_directory: [description]
-        :type save_directory: [type]
+    def __init__(self, first_genes: Chromosome, strategies: Strategies, max_age: int | None, pool_size: int, 
+        mutate_after_crossover: bool, crossover_elitism: list[numeric] | None, elitism_rate: list[int] | None, 
+        freedom_rate: int, parallelism: bool, local_opt: bool, max_seconds: numeric | None, time_toler: numeric | None, 
+        gens_toler: numeric | None, max_gens: numeric | None, save_directory: str) -> None:
+        """Initializes the Genetic object by receiving its parameters
+
+        :param first_genes: The genes of the first candidate in the genetic algorithm
+        :type first_genes: Chromosome
+        :param strategies: Strategies object
+        :type strategies: Strategies
+        :param max_age: The max amount of times a Chromosome can suffer chaging strategies without improve its fitness
+        :type max_age: int
+        :param pool_size: The amount of candidates being optimized simultaneously
+        :type pool_size: int
+        :param mutate_after_crossover: If it's True, than after each crossover operation, the resultant child Chromosome
+            suffer a mutate operation before return to the genetic algorithm, but if it's false the mutation doesn't
+            occur and the child Chromosome is returned immediately after the crossover
+        :type mutate_after_crossover: bool
+        :param crossover_elitism: The rate each candidate tends to be selected to be the gene's donor in any crossover 
+            operation from the best to the worst. Its lenght must be equal pool_size value. If pool_size is 3 and 
+            crossover_elitism is [3, 2, 1] the best candidate has the triple of the chance to be selected than the 
+            worst, the medium candidate has double. It can also receive None, and it means all candidates are equally
+            probable to be selected for being the genes' donor on a crossover
+        :type crossover_elitism: list[numeric] | None
+        :param elitism_rate: List of reprodution rate of each candidate, from the best to the worst. the sum of its 
+            elements also must be less or equal than pool_size. If pool_size is 16 and elitism_rate is [4, 3, 2] it 
+            means the best candidate in the current generation's pool of candidates will provide 4 descendants for the 
+            next generation, the second best will provide 3 and the third best will provide two, then then remain 7 
+            available spaces in the next generation's pool will be filled with one descendant of each of the next seven 
+            candidates in this order
+        :type elitism_rate: list[int] | None
+        :param freedom_rate: The number of candidate generation strategies (Mutate, Crossover and Create) the candidate 
+            will suffer aways a new candidate is needed to be generated (if Create is selected it means the candidate is
+            supposed to be substituted by a whole new one without any relation with the parent candidate)
+        :type freedom_rate: int
+        :param parallelism: If it's True than each fitness calculation will be done in a different process, what changes
+            the whole dynamics of the genetic algorithm. With paraellism enabled, the concept of generations emerges as
+            we can have different candidates being caculated at the same time. If it's False, there will be no
+            generations and candidates' fitnesses will be calculated sequentially
+        :type parallelism: bool
+        :param local_opt: If its True makes that every time the algorithm genetic gets a new best candidate it is sent 
+            to the local_optimize function (which in this case must be override by the subclass) that is supposed to
+            perform a local optimization (in the solution-space of the specific problem) over the genes of the best 
+            candidate, and then return a new best candidate with the optimized genes
+        :type local_opt: bool
+        :param max_seconds: The max amount of seconds the genetic algorithm can run. Once exceeded this amount, the
+            the running will be stoped and the best candidate will be returned. It can also receive None, and in this 
+            case this limit wouldn't exist
+        :type max_seconds: numeric | None
+        :param time_toler: The max amount of seconds the algorithm can still running without has any improvements on its
+            best candidate's fitness. Once exceeded this amount, the running will be stoped and the best candidate will 
+            be returned. It can also receive None, and in this case this limit wouldn't exist
+        :type time_toler: numeric | None
+        :param gens_toler: The maximum amount of generations the algorithm genetic can run in sequence without having
+            any improvement on it's best parent fitness. It can also receive None and in this case this limit wouldn't 
+            exist. It only works when parallelism is True, otherwise it doesn't affect anything
+        :type gens_toler: numeric | None
+        :param max_gens: The max amount of generations the genetic algorithm can run. Once exceeded this amount, the
+            the running will be stoped and the best candidate will be returned. It can also receive None, and in this 
+            case this limit wouldn't exist. It only works when parallelism is True, otherwise it doesn't affect anything
+        :type max_gens: numeric | None
+        :param save_directory: The directory address relative to __main__ where the outputs will be saved. If its None
+            than it will receive the instant of time the running started
+        :type save_directory: str
         """        
         self.first_genes = first_genes
-        self.fitness_param = fitness_param
         self.strategies = strategies
         self.max_age = max_age
         self.pool_size = pool_size
@@ -286,8 +378,7 @@ class Genetic(ABC):
         self.time_toler = time_toler
         self.gens_toler = gens_toler
         self.max_gens = max_gens
-        self.save_directory = f"{datetime.now().strftime('%Y_%m_%d_%H:%M')}" if save_directory == None \
-            else save_directory
+        self.save_directory = save_directory
         self.start_time = None
         self.first_parent = None
         self.lineage_ids = []
@@ -305,101 +396,126 @@ class Genetic(ABC):
             self.create_methods.methods[self.create_methods.methods.index(mutate_best)] = self.mutate_best
         
     @abstractmethod
-    def get_fitness(self, candidate):
-        """[summary]
+    def get_fitness(self, candidate: Chromosome) -> Fitness:
+        """Abstract method which must be override by one which receives a candidate's Chromosome and returns it's
+            fitness
 
-        :param candidate: [description]
-        :type candidate: [type]
-        """        
+        :param candidate: Candidate wich fitness is wanted
+        :type candidate: Fitness
+        :type parent: Candidate's fitness
+        :rtype: Fitness
+        """
         pass
 
     @abstractmethod
-    def save(self, candidate, file_name, directory):
-        """[summary]
+    def save(self, candidate: Chromosome, file_name: str, directory: str) -> None:
+        """Abstract method which must be override by one which receives a candidate, a file_name and a directory
 
-        :param candidate: [description]
-        :type candidate: [type]
-        :param file_name: [description]
-        :type file_name: [type]
-        :param directory: [description]
-        :type directory: [type]
-        """        
+        This method which overrides it must receive a candidate's Chromosome, a string which is the name of the file
+        the candidate will be saved and a string which is the directory where it will be saved than this function must
+        save the candidate relevant informations in a document named as given in the directory given. The directory is
+        given relative to __main__
+
+        :param candidate: Candidate which is wanted to save
+        :type candidate: Chromosome
+        :param file_name: Name of the file in which the candidate's informations must be saved
+        :type file_name: str
+        :param directory: Directory where the file with the candidate's information must be saved
+        :type directory: str
+        """
         pass
 
-    def mutate_first(self, first_parent):
-        """[summary]
+    def mutate_first(self, first_parent: Chromosome) -> Genes:
+        """The actual mutate_first function
 
-        :param first_parent: [description]
-        :type first_parent: [type]
-        :return: [description]
-        :rtype: [type]
-        """        
+        Creation function that receives the Chromosome of the first candidate and pass it to the Mutate object to return 
+        the result
+
+        :param first_parent: First created candidate
+        :type first_parent: Chromosome
+        :return: Mutated genes of the first candidate
+        :rtype: genes
+        """
         return self.mutate_methods(self.first_parent).genes
 
-    def mutate_best(self, best_candidate):
-        """[summary]
+    def mutate_best(self, best_candidate: Chromosome) -> Genes:
+        """The actual mutate_best function
 
-        :param best_candidate: [description]
-        :type best_candidate: [type]
-        :return: [description]
-        :rtype: [type]
-        """        
+        Creation function that receives the Chromosome of the best candidate and pass it to the Mutate object to return 
+        the result
+
+        :param best_candidate: Best candidate
+        :type best_candidate: Chromosome
+        :return: Mutated genes of the best candidate
+        :rtype: genes
+        """
         return self.mutate_methods(self.best_candidate).genes
 
     @staticmethod
-    def catch(candidate):
-        """[summary]
+    def catch(candidate: Chromosome) -> None:
+        """Static method which will be executed if an error occurs during a candidate generation
 
-        :param candidate: [description]
-        :type candidate: [type]
-        :raises Exception: [description]
-        """        
-        raise  Exception(f'An exception ocurred while generating candidate {candidate.label}.')
-    
+        It can be override if needed. By default it just raises an exception
+
+        :param candidate: Candidate which was being generated while error occurs
+        :type candidate: Chromosome
+        :raises Exception: Raises exception if error occurs during candidate generation
+        """
+        raise Exception(f'An exception ocurred while generating candidate {candidate.label}.')
+
     @staticmethod
-    def display(candidate, timediff):
-        """[summary]
+    def display(candidate: Chromosome, timediff: float) -> None:
+        """Generate what is printed on console everytime a new best candidate is reached
 
-        :param candidate: [description]
-        :type candidate: [type]
-        :param timediff: [description]
-        :type timediff: [type]
-        """        
+        It can be override if needed
+
+        :param candidate: Best candidate founded
+        :type candidate: Chromosome
+        :param timediff: Time difference between the candidate is founded and the start of the execution
+        :type timediff: float
+        """
         print("{0}\t{1}".format((candidate.fitness), str(timediff)))
-       
-    def load(self) -> Chromosome:
-        """[summary]
 
-        :return: [description]
+    def load(self) -> Chromosome:
+        """Returns a candidate with the first_genes and the fitness of the first_parent
+
+        :return: First candidate
         :rtype: Chromosome
-        """        
+        """
         return Chromosome(self.first_genes, self.first_parent.fitness, [self.load])
 
-    def __get_child(self, candidates, parent_index, queue:mp.Queue=None, child_index:int=None, label:str=None):
-        """[summary]
+    def __get_child(self, candidates: list[Chromosome], parent_index: int, queue: mp.Queue = None, child_index: int = None, 
+        label: str = None):
+        """Returns a new candidate
 
-        :param candidates: [description]
-        :type candidates: [type]
-        :param parent_index: [description]
-        :type parent_index: [type]
-        :param queue: [description], defaults to None
+        Tries to generate a new candidate inside a 'while True' loop with a 'try except' statement which is broke when
+        the new candidate is successfully generated. If an exception occurs during the candidate generation try, the 
+        function 'catch' will be called with such candidate as argument
+
+        :param candidates: Pool of candidates
+        :type candidates: list[Chromosome]
+        :param parent_index: Index of the current parent's Chromosome in candidates
+        :type parent_index: int
+        :param queue: Multiprocessing queue by which the candidates are returned in case of parallelism, defaults to 
+            None
         :type queue: mp.Queue, optional
-        :param child_index: [description], defaults to None
+        :param child_index: Index of child in the next generation pool. It's used to identify the returned chromosome in
+            the main process in case of parallelism, defaults to None
         :type child_index: int, optional
-        :param label: [description], defaults to None
+        :param label: Child's Chromosome's label, defaults to None
         :type label: str, optional
-        :return: [description]
-        :rtype: [type]
-        """        
+        :return: Child
+        :rtype: Chromosome
+        """
         sorted_candidates = copy.copy(candidates)
         sorted_candidates.sort(reverse=True, key=lambda p: p.fitness)
         while True:
             try:
-                parent = candidates[parent_index]
+                parent = copy.deepcopy(candidates[parent_index])
                 for _ in range(self.freedom_rate):
                     donor = random.choices(sorted_candidates, self.crossover_elitism)[0]
-                    child = random.choices(self.strategies.strategies, self.strategies.rate)[0]\
-                        (parent, donor, self.mutate_after_crossover, self.mutate_methods, self.first_parent)
+                    child = self.strategies(parent, donor, self.mutate_after_crossover, self.mutate_methods, 
+                        self.first_parent)
                     parent = child
                 child.label = label
                 child.fitness = self.get_fitness(child)
@@ -413,14 +529,15 @@ class Genetic(ABC):
             queue.put({child_index: child})
         return child
 
-    def __local_optimization(self, candidate:Chromosome) -> Chromosome:
-        """[summary]
+    def __local_optimization(self, candidate: Chromosome) -> Chromosome:
+        """Receives a candidate then performs a local optimization on its genes and so returns a new Chromosome with
+        these new genes and its fitness
 
-        :param candidate: [description]
+        :param candidate: Candidate which genes are wanted to be optimized
         :type candidate: Chromosome
-        :return: [description]
+        :return: Optimized candidate
         :rtype: Chromosome
-        """        
+        """
         if not self.local_opt:
             return candidate
         new_genes = self.local_optimize(candidate)
@@ -428,27 +545,36 @@ class Genetic(ABC):
         return Chromosome(new_genes, new_fitness, candidate.strategy + [self.local_optimize], 0, 
             candidate.lineage + [candidate])
 
-    def local_optimize(self, candidate):
-        """[summary]
+    def local_optimize(self, candidate: Chromosome) -> Genes:
+        """This method must be override in case of local_opt is True for a method which receives a candidate's 
+        Chromosome and returns its genes locally optimized
 
-        :param candidate: [description]
-        :type candidate: [type]
+        :param candidate: Candidate which genes are wanted to be optimized
+        :type candidate: Chromosome
+        :raises Exception: Raises exception if this method was not override by the subclass
+        :return: Optimized genes
+        :rtype: Genes
         """        
-        pass
+        raise Exception(f'The class {self.__class__.__name__} must override the local_optimize method of parent class')
 
-    def __generate_parent(self, queue=None, label:str=None):
-        """[summary]
+    def __generate_parent(self, queue: mp.Queue = None, label: str = None):
+        """Uses the Create object from strategies to generate a new candidate
 
-        :param queue: [description], defaults to None
-        :type queue: [type], optional
-        :param label: [description], defaults to None
+        Tries to generate a new candidate using the Create object from strategies inside a 'while True' loop with a 'try
+        except' statement which is broke when the new candidate is successfully generated. If an exception occurs during
+        the candidate generation try, the function 'catch' will be called with such candidate as argument
+
+        :param queue: Multiprocessing queue by which the candidates are returned in case of parallelism, defaults to 
+            None
+        :type queue: mp.Queue, optional
+        :param label: New parent's Chromosome's label, defaults to None
         :type label: str, optional
-        :return: [description]
-        :rtype: [type]
-        """        
+        :return: New candidate
+        :rtype: Chromosome
+        """
         while True:
             try:
-                parent = self.create_methods(first_parent=self.first_parent)
+                parent = self.create_methods(first_parent=copy.deepcopy(self.first_parent))
                 parent.label = label
                 parent.fitness = self.get_fitness(parent)
                 break
@@ -458,12 +584,14 @@ class Genetic(ABC):
             queue.put(parent)
         return parent
 
-    def run(self):
-        """[summary]
+    def run(self) -> Chromosome:
+        """Starts the genetic algorithm execution
 
-        :return: [description]
-        :rtype: [type]
-        """        
+        :return: Best candidate
+        :rtype: Chromosome
+        """
+        self.save_directory = f"{datetime.now().strftime('%Y_%m_%d_%H:%M')}" if self.save_directory is None \
+            else self.save_directory
         os.mkdir(self.save_directory)
         os.mkdir(f'{self.save_directory}/lineage')
         os.mkdir(f'{self.save_directory}/improvements')
@@ -494,14 +622,14 @@ class Genetic(ABC):
         self.save(improvement, f'{n}_{improvement.label}_best', f'{self.save_directory}')
         with open(f'{self.save_directory}/strategies_log.txt', 'a') as slog:
             slog.write('\n---')
-        return improvement.genes
+        return improvement
 
     def __get_improvement(self):
-        """[summary]
+        """Generator of genetic improvements
 
-        :yield: [description]
-        :rtype: [type]
-        """        
+        :yield: Best candidate achieved until the moment
+        :rtype: Chromosome
+        """
         best_parent = self.__local_optimization(self.load())
         best_parent.label = '0_0'
         yield self.max_seconds is not None and time.time() - self.start_time > self.max_seconds, best_parent
@@ -564,12 +692,12 @@ class Genetic(ABC):
                 historical_fitnesses.append(child.fitness)
 
     def __get_improvement_mp(self):
-        """[summary]
+        """Genetic improvements generator using multiprocessing
 
-        :raises Exception: [description]
-        :yield: [description]
-        :rtype: [type]
-        """        
+        :raises Exception: Raises an exception if elitism rate is incompatible with pool size
+        :yield: Best candidate achieved until the moment
+        :rtype: Chromosome
+        """
         elit_size = len(self.elitism_rate) if self.elitism_rate is not None else None
         last_improvement_time = self.start_time
         queue = mp.Queue(maxsize=self.pool_size - 1)
@@ -577,7 +705,7 @@ class Genetic(ABC):
         gen = 0
         if elit_size is not None:
             if sum(self.elitism_rate) > self.pool_size:
-                raise Exception('Minimal elitism exceeds pool size. Increase the pool size or reduce the elit size.')
+                raise Exception('Elitism exceeds pool size.')
         best_parent = self.__local_optimization(self.load())
         best_parent.label = '0_0'
         yield self.max_seconds is not None and time.time() - self.start_time > self.max_seconds, best_parent

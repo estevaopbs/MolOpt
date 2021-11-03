@@ -24,7 +24,7 @@ class MolOpt(Genetic):
 
         :param first_molecule: Molecule which is wanted to be optimized
         :type first_molecule: Molecule
-        :param fitness_param: The string which precedes the energy value in molpro's output
+        :param fitness_param: The string which precedes the energy value in Molpro's output
         :type fitness_param: str
         :param strategies: Strategies object
         :type strategies: Strategies

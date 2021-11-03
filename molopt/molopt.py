@@ -19,8 +19,8 @@ class MolOpt(Genetic):
     def __init__(self, first_molecule: Molecule, fitness_param: str, strategies: Strategies, max_age: int, pool_size: int, 
         mutate_after_crossover: bool, crossover_elitism: list[int], elitism_rate: list[int], freedom_rate: int, 
         parallelism: bool, local_opt: bool, max_seconds: numeric | None, time_toler: numeric | None, 
-        gens_toler: int | None, max_gens: int | None, save_directory: str, threads_per_calc: int):
-        """[summary]
+        gens_toler: int | None, max_gens: int | None, save_directory: str, threads_per_calc: int) -> None:
+        """Initializes the MolOpt object
 
         :param first_molecule: Molecule which is wanted to be optimized
         :type first_molecule: Molecule

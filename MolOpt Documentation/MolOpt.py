@@ -1,6 +1,6 @@
 import os
-from molopt.genetic import *
-from molopt.molecular import *
+from genetic import *
+from molecular import *
 from typing import Union
 
 
@@ -21,7 +21,7 @@ class MolOpt(Genetic):
         pool_size: int, mutate_after_crossover: bool, crossover_elitism: list[int], elitism_rate: list[int], 
         freedom_rate: int, parallelism: bool, local_opt: bool, max_seconds: Union[numeric, None], 
         time_toler: Union[numeric, None], gens_toler: Union[int, None], max_gens: Union[int, None], 
-        save_directory: str, threads_per_calc: int) -> None:
+        save_directory: str, threads_per_calc: int):
         """Initializes the MolOpt object
 
         :param first_molecule: Molecule which is wanted to be optimized
@@ -30,32 +30,32 @@ class MolOpt(Genetic):
         :type fitness_param: str
         :param strategies: Strategies object
         :type strategies: Strategies
-        :param max_age: The max amount of times a Chromosome can suffer chaging strategies without improve its fitness,
-            if it's None then only improvements will be accepted
-        :type max_age: Union[int, None]
-        :param pool_size: The amount of candidates being optimized together
+        :param max_age: The max amount of times a Chromosome can suffer chaging strategies without improve its fitness
+        :type max_age: int
+        :param pool_size: The amount of candidates being optimized simultaneously
         :type pool_size: int
-        :param mutate_after_crossover: If it's True then, after each crossover operation, the resultant child Chromosome
-            will suffer a mutate operation before return to the genetic algorithm, but if it's false the mutation 
-            doesn't occur and the child Chromosome will be returned immediately after the crossover
+        :param mutate_after_crossover: If it's True, than after each crossover operation, the resultant child Chromosome
+            suffer a mutate operation before return to the genetic algorithm, but if it's false the mutation doesn't
+            occur and the child Chromosome is returned immediately after the crossover
         :type mutate_after_crossover: bool
         :param crossover_elitism: The rate each candidate tends to be selected to be the gene's donor in any crossover 
             operation from the best to the worst. Its lenght must be equal pool_size value. If pool_size is 3 and 
             crossover_elitism is [3, 2, 1] the best candidate has the triple of the chance to be selected than the 
-            worst, the medium candidate has double. It can also receive None, and it means all candidates would be 
-            equally probable to be selected for being the genes' donor on a crossover
+            worst, the medium candidate has double. It can also receive None, and it means all candidates are equally
+            probable to be selected for being the genes' donor on a crossover
         :type crossover_elitism: Union[list[numeric], None]
-        :param elitism_rate: Reprodution rate of each candidate, from the best to the worst. the sum of its elements 
-            also must be less or equal than pool_size. If pool_size is 16 and elitism_rate is [4, 3, 2] it means the 
-            best candidate in the current generation's pool of candidates will provide 4 descendants for the next 
-            generation, the second best will provide 3 and the third best will provide two, then the remains 7 available
-            spaces in the next generation's pool will be filled with one descendant of each one of the seven next 
+        :param elitism_rate: list of reprodution rate of each candidate, from the best to the worst. the sum of its 
+            elements also must be less or equal than pool_size. If pool_size is 16 and elitism_rate is [4, 3, 2] it 
+            means the best candidate in the current generation's pool of candidates will provide 4 descendants for the 
+            next generation, the second best will provide 3 and the third best will provide two, then then remain 7 
+            available spaces in the next generation's pool will be filled with one descendant of each of the next seven 
             candidates in this order
         :type elitism_rate: Union[list[int], None]
         :param freedom_rate: The number of candidate generation strategies (Mutate, Crossover and Create) the candidate 
-            will suffer aways a new candidate is needed to be generated
+            will suffer aways a new candidate is needed to be generated (if Create is selected it means the candidate is
+            supposed to be substituted by a whole new one without any relation with the parent candidate)
         :type freedom_rate: int
-        :param parallelism: If it's True then each fitness calculation will be done in a different process, what changes
+        :param parallelism: If it's True than each fitness calculation will be done in a different process, what changes
             the whole dynamics of the genetic algorithm. With paraellism enabled, the concept of generations emerges as
             we can have different candidates being caculated at the same time. If it's False, there will be no
             generations and candidates' fitnesses will be calculated sequentially

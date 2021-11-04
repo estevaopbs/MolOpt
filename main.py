@@ -1,4 +1,4 @@
-from molopt import *
+from MolOpt import *
 
 
 if __name__ == '__main__':

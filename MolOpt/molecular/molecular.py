@@ -332,7 +332,9 @@ class Molecule:
         Respecting empty lines between different sections of the file. That is, it must have one empty line between each
         section of the file. Here we can see we can have until six sections in the file: the beggining's section or just
         '***,', the basis' section, the parameters' section (that can exists or don't), the geometry's section, the 
-        settings' section and the end section or just '---'
+        settings' section and the end section or just '---'. The second structure, that is the structure with literal 
+        numbers inside the geometry brackets is not compatible with optg function, so the first structure, that is the 
+        one with declared variables before the geometry is aways recommended
 
         :param file: File name, it must end with .inp but the .inp may not be included here
         :type file: str

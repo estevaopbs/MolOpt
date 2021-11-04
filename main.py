@@ -7,8 +7,8 @@ if __name__ == '__main__':
     create_methods = Create([MolOpt.randomize, mutate_first, mutate_best], [1, 0.5, 0.5])
     strategies = Strategies([mutate_methods, crossover_methods, create_methods], [1, 1, 0])
     Al10_test = MolOpt(
-        first_genes = Molecule.load('al_n.inp', (0, 3)),
-        fitness_param = '!RKS STATE 1.1 Energy',
+        first_molecule = Molecule.load('al_n.inp', (0, 3)),
+        energy_param = '!RKS STATE 1.1 Energy',
         strategies = strategies,
         max_age = 200,
         pool_size = 3,

@@ -17,7 +17,7 @@ class MolOpt(Genetic):
     :param Genetic: Genetic algorithm abstract class
     :type Genetic: ABC
     """
-    def __init__(self, first_molecule: Molecule, fitness_param: str, strategies: Strategies, max_age: Union[int, None], 
+    def __init__(self, first_molecule: Molecule, energy_param: str, strategies: Strategies, max_age: Union[int, None], 
         pool_size: int, mutate_after_crossover: bool, crossover_elitism: list[int], elitism_rate: list[int], 
         freedom_rate: int, parallelism: bool, local_opt: bool, max_seconds: Union[numeric, None], 
         time_toler: Union[numeric, None], gens_toler: Union[int, None], max_gens: Union[int, None], 
@@ -26,8 +26,8 @@ class MolOpt(Genetic):
 
         :param first_molecule: Molecule which is wanted to be optimized
         :type first_molecule: Molecule
-        :param fitness_param: The string which precedes the energy value in Molpro's output
-        :type fitness_param: str
+        :param energy_param: The string which precedes the energy value in Molpro's output
+        :type energy_param: str
         :param strategies: Strategies object
         :type strategies: Strategies
         :param max_age: The max amount of times a Chromosome can suffer chaging strategies without improve its fitness.
@@ -91,7 +91,7 @@ class MolOpt(Genetic):
         super().__init__(first_molecule, strategies, max_age, pool_size, mutate_after_crossover, crossover_elitism, 
             elitism_rate, freedom_rate, parallelism, local_opt, max_seconds, time_toler,gens_toler, max_gens, 
             save_directory)
-        self.fitness_param = fitness_param
+        self.energy_param = energy_param
         self.threads_per_calc = threads_per_calc
 
     def get_fitness(self, candidate: Chromosome) -> float:
@@ -105,14 +105,14 @@ class MolOpt(Genetic):
         molecule = candidate.genes
         file_name = candidate.label
         if candidate.label == '0_0':
-            return - float(molecule.get_value([self.fitness_param], document=file_name, 
+            return - float(molecule.get_value([self.energy_param], document=file_name, 
                 directory=self.save_directory + '/data', 
-                nthreads=self.threads_per_calc * self.pool_size)[self.fitness_param])
+                nthreads=self.threads_per_calc * self.pool_size)[self.energy_param])
         if molecule.was_optg:
-            return - molecule.output_values[self.fitness_param]
-        return - float(molecule.get_value([self.fitness_param], document=file_name, 
+            return - molecule.output_values[self.energy_param]
+        return - float(molecule.get_value([self.energy_param], document=file_name, 
             directory=self.save_directory + '/data', 
-            nthreads=self.threads_per_calc)[self.fitness_param])
+            nthreads=self.threads_per_calc)[self.energy_param])
 
     @staticmethod
     def swap_mutate(parent: Chromosome) -> Molecule:
@@ -209,7 +209,7 @@ class MolOpt(Genetic):
         :return: Optimized molecule
         :rtype: Molecule
         """
-        return optg(candidate.genes, self.fitness_param, nthreads = self.pool_size * self.threads_per_calc)
+        return optg(candidate.genes, self.energy_param, nthreads = self.pool_size * self.threads_per_calc)
 
     @staticmethod
     def catch(candidate: Chromosome) -> None:

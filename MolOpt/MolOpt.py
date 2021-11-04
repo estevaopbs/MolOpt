@@ -1,6 +1,6 @@
 import os
-from molopt.genetic import *
-from molopt.molecular import *
+from MolOpt.genetic import *
+from MolOpt.molecular import *
 from typing import Union
 
 
@@ -17,7 +17,7 @@ class MolOpt(Genetic):
     :param Genetic: Genetic algorithm abstract class
     :type Genetic: ABC
     """
-    def __init__(self, first_molecule: Molecule, fitness_param: str, strategies: Strategies, max_age: int, 
+    def __init__(self, first_molecule: Molecule, fitness_param: str, strategies: Strategies, max_age: Union[int, None], 
         pool_size: int, mutate_after_crossover: bool, crossover_elitism: list[int], elitism_rate: list[int], 
         freedom_rate: int, parallelism: bool, local_opt: bool, max_seconds: Union[numeric, None], 
         time_toler: Union[numeric, None], gens_toler: Union[int, None], max_gens: Union[int, None], 
@@ -30,7 +30,7 @@ class MolOpt(Genetic):
         :type fitness_param: str
         :param strategies: Strategies object
         :type strategies: Strategies
-        :param max_age: The max amount of times a Chromosome can suffer chaging strategies without improve its fitness,
+        :param max_age: The max amount of times a Chromosome can suffer chaging strategies without improve its fitness.
             if it's None then only improvements will be accepted
         :type max_age: Union[int, None]
         :param pool_size: The amount of candidates being optimized together

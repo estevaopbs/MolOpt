@@ -233,108 +233,109 @@ class Molecule:
     def load(file: str, rand_range: Tuple[numeric, numeric] = None, label: str = None, output: str = None, 
         output_values: dict[str, numeric] = dict(), was_optg: bool = False) -> Molecule:
         """Loads a molecule from a .inp document and returns its Molecule object
-
-        The file must have the one of the following structures:
-
-        ***,
-
-        basis={
-        !
-        ! aluminium            (6s,4p) -> [3s,2p]
-        s, AL , 0.5605994123E+00, 0.1923360636E+00, 0.7304329554E+01, 0.1852570854E+01, 0.1343774607E+03, 0.2391912027E+02
-        c, 1.2, -0.2983986045E+00, 0.1227982887E+01
-        c, 3.4, 0.4947176920E-01, 0.9637824081E+00
-        c, 5.6, 0.4301284983E+00, 0.6789135305E+00
-        p, AL , 0.7304329554E+01, 0.1852570854E+01, 0.5605994123E+00, 0.1923360636E+00
-        c, 1.2, 0.5115407076E+00, 0.6128198961E+00
-        c, 3.4, 0.3480471912E+00, 0.7222523221E+00
-        }
-
-        r1=2.706
-        r2=2.414
-        r3=2.481
-        r4=2.817
-        r5=2.529
-        r6=2.547
-        r7=2.510
-        r8=2.401
-        r9=2.666
-        t1=66.357
-        t2=65.256
-        t3=115.675
-        t4=107.280
-        t5=105.113
-        t6=97.637
-        t7=104.449
-        t8=63.620
-        a1=104.0
-        a2=89.4
-        a3=345.8
-        a4=272.6
-        a5=43.5
-        a6=341.2
-        a7=238.2
-
-        geometry={ang
-        Al
-        Al,  1,     r1
-        Al,  2,     r2 ,    1,      t1
-        Al,  2,     r3 ,    1,     t2,       3,    a1
-        Al,  3,     r4 ,    2,     t3,       1,     a2
-        Al,  1,     r5 ,    2,     t4,       3,    a3
-        Al,  5,     r6 ,    3,     t5,       2,    a4
-        Al,  7,     r7,     5,      t6,      3,     a5
-        Al,  5,     r8,     3,      t7,      2,    a6
-        Al,  4,     r9,     2,      t8,      1,     a7
-        }
-
-        SET,CHARGE=0
-        direct
-        {ks, b3lyp,maxit=200}
-
-        ---
-
-        or 
-
-        ***,
-
-        basis={
-        !
-        ! aluminium            (6s,4p) -> [3s,2p]
-        s, AL , 0.5605994123E+00, 0.1923360636E+00, 0.7304329554E+01, 0.1852570854E+01, 0.1343774607E+03, 0.2391912027E+02
-        c, 1.2, -0.2983986045E+00, 0.1227982887E+01
-        c, 3.4, 0.4947176920E-01, 0.9637824081E+00
-        c, 5.6, 0.4301284983E+00, 0.6789135305E+00
-        p, AL , 0.7304329554E+01, 0.1852570854E+01, 0.5605994123E+00, 0.1923360636E+00
-        c, 1.2, 0.5115407076E+00, 0.6128198961E+00
-        c, 3.4, 0.3480471912E+00, 0.7222523221E+00
-        }
-
-        geometry={ang
-        Al
-        Al,  1,     2.706
-        Al,  2,     2.414,     1,      66.357
-        Al,  2,     2.481,     1,      65.256,       3,     104.0
-        Al,  3,     2.817,     2,      115.675,      1,     89.4
-        Al,  1,     2.529,     2,      107.280,      3,     345.8
-        Al,  5,     2.547,     3,      105.113,      2,     272.6
-        Al,  7,     2.510,     5,      97.637,       3,     43.5
-        Al,  5,     2.401,     3,      104.449,      2,     341.2
-        Al,  4,     2.666,     2,      63.620,       1,     238.2
-        }
-
-        SET,CHARGE=0
-        direct
-        {ks, b3lyp,maxit=200}
-
-        ---
-
-        Respecting empty lines between different sections of the file. That is, it must have one empty line between each
-        section of the file. Here we can see we can have until six sections in the file: the beggining's section or just
-        '***,', the basis' section, the parameters' section (that can exists or don't), the geometry's section, the 
-        settings' section and the end section or just '---'. The second structure, that is the structure with literal 
-        numbers inside the geometry brackets is not compatible with optg function, so the first structure, that is the 
-        one with declared variables before the geometry is aways recommended
+        |br| 
+        |br| The file must have the one of the following structures:
+        |br| 
+        |br| \*\*\*,
+        |br| 
+        |br| basis={
+        |br| !
+        |br| ! aluminium            (6s,4p) -> [3s,2p]
+        |br| s, AL , 0.5605994123E+00, 0.1923360636E+00, 0.7304329554E+01, 0.1852570854E+01, 0.1343774607E+03, 0.2391912027E+02
+        |br| c, 1.2, -0.2983986045E+00, 0.1227982887E+01
+        |br| c, 3.4, 0.4947176920E-01, 0.9637824081E+00
+        |br| c, 5.6, 0.4301284983E+00, 0.6789135305E+00
+        |br| p, AL , 0.7304329554E+01, 0.1852570854E+01, 0.5605994123E+00, 0.1923360636E+00
+        |br| c, 1.2, 0.5115407076E+00, 0.6128198961E+00
+        |br| c, 3.4, 0.3480471912E+00, 0.7222523221E+00
+        |br| }
+        |br| 
+        |br| r1=2.706
+        |br| r2=2.414
+        |br| r3=2.481
+        |br| r4=2.817
+        |br| r5=2.529
+        |br| r6=2.547
+        |br| r7=2.510
+        |br| r8=2.401
+        |br| r9=2.666
+        |br| t1=66.357
+        |br| t2=65.256
+        |br| t3=115.675
+        |br| t4=107.280
+        |br| t5=105.113
+        |br| t6=97.637
+        |br| t7=104.449
+        |br| t8=63.620
+        |br| a1=104.0
+        |br| a2=89.4
+        |br| a3=345.8
+        |br| a4=272.6
+        |br| a5=43.5
+        |br| a6=341.2
+        |br| a7=238.2
+        |br| 
+        |br| geometry={ang
+        |br| Al
+        |br| Al,  1,     r1
+        |br| Al,  2,     r2 ,    1,      t1
+        |br| Al,  2,     r3 ,    1,     t2,       3,    a1
+        |br| Al,  3,     r4 ,    2,     t3,       1,     a2
+        |br| Al,  1,     r5 ,    2,     t4,       3,    a3
+        |br| Al,  5,     r6 ,    3,     t5,       2,    a4
+        |br| Al,  7,     r7,     5,      t6,      3,     a5
+        |br| Al,  5,     r8,     3,      t7,      2,    a6
+        |br| Al,  4,     r9,     2,      t8,      1,     a7
+        |br| }
+        |br| 
+        |br| SET,CHARGE=0
+        |br| direct
+        |br| {ks, b3lyp,maxit=200}
+        |br| 
+        |br| \-\-\-
+        |br| 
+        |br| or 
+        |br| 
+        |br| \*\*\*,
+        |br| 
+        |br| basis={
+        |br| !
+        |br| ! aluminium            (6s,4p) -> [3s,2p]
+        |br| s, AL , 0.5605994123E+00, 0.1923360636E+00, 0.7304329554E+01, 0.1852570854E+01, 0.1343774607E+03, 0.2391912027E+02
+        |br| c, 1.2, -0.2983986045E+00, 0.1227982887E+01
+        |br| c, 3.4, 0.4947176920E-01, 0.9637824081E+00
+        |br| c, 5.6, 0.4301284983E+00, 0.6789135305E+00
+        |br| p, AL , 0.7304329554E+01, 0.1852570854E+01, 0.5605994123E+00, 0.1923360636E+00
+        |br| c, 1.2, 0.5115407076E+00, 0.6128198961E+00
+        |br| c, 3.4, 0.3480471912E+00, 0.7222523221E+00
+        |br| }
+        |br| 
+        |br| geometry={ang
+        |br| Al
+        |br| Al,  1,     2.706
+        |br| Al,  2,     2.414,     1,      66.357
+        |br| Al,  2,     2.481,     1,      65.256,       3,     104.0
+        |br| Al,  3,     2.817,     2,      115.675,      1,     89.4
+        |br| Al,  1,     2.529,     2,      107.280,      3,     345.8
+        |br| Al,  5,     2.547,     3,      105.113,      2,     272.6
+        |br| Al,  7,     2.510,     5,      97.637,       3,     43.5
+        |br| Al,  5,     2.401,     3,      104.449,      2,     341.2
+        |br| Al,  4,     2.666,     2,      63.620,       1,     238.2
+        |br| }
+        |br| 
+        |br| SET,CHARGE=0
+        |br| direct
+        |br| {ks, b3lyp,maxit=200}
+        |br| 
+        |br| \-\-\-
+        |br| 
+        |br| Respecting empty lines between different sections of the file. That is, it must have one empty line between
+        each section of the file. Here we can see we can have until six sections in the file: the beggining's section or
+        just '\*\*\*,', the basis' section, the parameters' section (that can exists or don't), the geometry's section, 
+        the settings' section and the end section or just '\-\-\-'. The order of the sections also must respect the
+        order of the chosen structure. The second structure, that is the structure with literal numbers inside the
+        geometry brackets is not compatible with optg function, so the first structure, that is the one with declared
+        variables before the geometry is aways recommended
 
         :param file: File name, it must end with .inp but the .inp may not be included here
         :type file: str

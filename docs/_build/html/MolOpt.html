@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MolOpt package &mdash; MolOpt  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="genetic subpackage" href="MolOpt.genetic.html" />
+    <link rel="prev" title="MolOpt" href="modules.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> MolOpt
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">MolOpt</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">MolOpt package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="MolOpt.genetic.html">genetic subpackage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MolOpt.molecular.html">molecular subpackage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-MolOpt.MolOpt">MolOpt.MolOpt module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MolOpt</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="modules.html">MolOpt</a> &raquo;</li>
+      <li>MolOpt package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/MolOpt.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="molopt-package">
+<h1>MolOpt package<a class="headerlink" href="#molopt-package" title="Permalink to this headline"></a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="MolOpt.genetic.html">genetic subpackage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MolOpt.molecular.html">molecular subpackage</a></li>
+</ul>
+</div>
+<section id="module-MolOpt.MolOpt">
+<span id="molopt-molopt-module"></span><h2>MolOpt.MolOpt module<a class="headerlink" href="#module-MolOpt.MolOpt" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="MolOpt.MolOpt.MolOpt">
+<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">MolOpt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">first_molecule</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule"><span class="pre">MolOpt.molecular.molecular.Molecule</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_param</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strategies</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Strategies" title="MolOpt.genetic.genetic.Strategies"><span class="pre">MolOpt.genetic.genetic.Strategies</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_age</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pool_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mutate_after_crossover</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crossover_elitism</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elitism_rate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freedom_rate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_opt</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seconds</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_toler</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gens_toler</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_gens</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_directory</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads_per_calc</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MolOpt.MolOpt.MolOpt" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Genetic" title="MolOpt.genetic.genetic.Genetic"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolOpt.genetic.genetic.Genetic</span></code></a></p>
+<p>Molecular geometry optimization class</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>Genetic</strong> (<em>ABC</em>) – Genetic algorithm abstract class</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="MolOpt.MolOpt.MolOpt.catch">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">catch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">candidate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#MolOpt.MolOpt.MolOpt.catch" title="Permalink to this definition"></a></dt>
+<dd><p>Static method which will be executed if an error occurs during a candidate generation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>candidate</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which during generation some exception occurred</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MolOpt.MolOpt.MolOpt.crossover_1">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">crossover_1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">donor</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule"><span class="pre">MolOpt.molecular.molecular.Molecule</span></a></span></span><a class="headerlink" href="#MolOpt.MolOpt.MolOpt.crossover_1" title="Permalink to this definition"></a></dt>
+<dd><p>Produces a new molecule with the crossover of parent’s and donor’s molecules by cutting each one in one point
+and combining the resultant pieces.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parent</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which Molecule will suffer crossover_1</p></li>
+<li><p><strong>donor</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which will donate parameters for the crossover_1 operation</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Child molecule</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule">Molecule</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MolOpt.MolOpt.MolOpt.crossover_2">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">crossover_2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">donor</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule"><span class="pre">MolOpt.molecular.molecular.Molecule</span></a></span></span><a class="headerlink" href="#MolOpt.MolOpt.MolOpt.crossover_2" title="Permalink to this definition"></a></dt>
+<dd><p>Produces a new molecule with the crossover of parent’s and donor’s molecules by cutting each one in two 
+points and combining the resultant pieces</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parent</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which Molecule will suffer crossover_1</p></li>
+<li><p><strong>donor</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which will donate parameters for the crossover_1 operation</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Child molecule</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule">Molecule</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MolOpt.MolOpt.MolOpt.crossover_n">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">crossover_n</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">donor</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule"><span class="pre">MolOpt.molecular.molecular.Molecule</span></a></span></span><a class="headerlink" href="#MolOpt.MolOpt.MolOpt.crossover_n" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a new molecule which randomly carries parameters from the parent’s and donor’s molecules</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parent</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which Molecule will suffer crossover_1</p></li>
+<li><p><strong>donor</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which will donate parameters for the crossover_1 operation</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Child molecule</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule">Molecule</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MolOpt.MolOpt.MolOpt.get_fitness">
+<span class="sig-name descname"><span class="pre">get_fitness</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">candidate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#MolOpt.MolOpt.MolOpt.get_fitness" title="Permalink to this definition"></a></dt>
+<dd><p>Receives a candidate’s Chromosome and returns its fitness</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>candidate</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which fitness must be calculated</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Candidate’s fitness</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MolOpt.MolOpt.MolOpt.local_optimize">
+<span class="sig-name descname"><span class="pre">local_optimize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">candidate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule"><span class="pre">MolOpt.molecular.molecular.Molecule</span></a></span></span><a class="headerlink" href="#MolOpt.MolOpt.MolOpt.local_optimize" title="Permalink to this definition"></a></dt>
+<dd><p>Executes geometric optimization over the candidate’s molecule using Molpro and returns a new molecule with 
+the optimized geometry</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>candidate</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which Molecule will suffer local_optimize operation</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Optimized molecule</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule">Molecule</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MolOpt.MolOpt.MolOpt.mutate_angles">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">mutate_angles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule"><span class="pre">MolOpt.molecular.molecular.Molecule</span></a></span></span><a class="headerlink" href="#MolOpt.MolOpt.MolOpt.mutate_angles" title="Permalink to this definition"></a></dt>
+<dd><p>Returns parent’s molecule’s copy with some random angle parameter randomized between 0 and 360 degrees</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>parent</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which Molecule will suffer mutate_angles</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>New molecule</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule">Molecule</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MolOpt.MolOpt.MolOpt.mutate_distances">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">mutate_distances</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule"><span class="pre">MolOpt.molecular.molecular.Molecule</span></a></span></span><a class="headerlink" href="#MolOpt.MolOpt.MolOpt.mutate_distances" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a parent’s molecule’s copy with some random distance parameter randomized in the range gave by 
+parent.genes.rand_range</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>parent</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which Molecule will suffer mutate_distances</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>New molecule</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule">Molecule</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MolOpt.MolOpt.MolOpt.randomize">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">randomize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule"><span class="pre">MolOpt.molecular.molecular.Molecule</span></a></span></span><a class="headerlink" href="#MolOpt.MolOpt.MolOpt.randomize" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a parent’s molecule’s copy with all distances and angles parameters randomized</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>parent</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which Molecule will suffer randomize operation</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>New molecule</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule">Molecule</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MolOpt.MolOpt.MolOpt.save">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">candidate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#MolOpt.MolOpt.MolOpt.save" title="Permalink to this definition"></a></dt>
+<dd><p>Saves the candidate data in a .inp document</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>candidate</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which data will be saved</p></li>
+<li><p><strong>file_name</strong> (<em>str</em>) – Document’s name</p></li>
+<li><p><strong>directory</strong> (<em>str</em>) – Directory where the document will be saved</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MolOpt.MolOpt.MolOpt.swap_mutate">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">swap_mutate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><span class="pre">MolOpt.genetic.genetic.Chromosome</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule"><span class="pre">MolOpt.molecular.molecular.Molecule</span></a></span></span><a class="headerlink" href="#MolOpt.MolOpt.MolOpt.swap_mutate" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a parent’s molecule’s copy with randomly swapped places parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>parent</strong> (<a class="reference internal" href="MolOpt.genetic.html#MolOpt.genetic.genetic.Chromosome" title="MolOpt.genetic.genetic.Chromosome"><em>Chromosome</em></a>) – Candidate which Molecule will suffer swap_mutate</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>New molecule</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="MolOpt.molecular.html#MolOpt.molecular.molecular.Molecule" title="MolOpt.molecular.molecular.Molecule">Molecule</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="modules.html" class="btn btn-neutral float-left" title="MolOpt" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="MolOpt.genetic.html" class="btn btn-neutral float-right" title="genetic subpackage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Estevão Santos.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

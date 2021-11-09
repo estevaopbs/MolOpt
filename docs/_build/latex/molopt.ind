@@ -1,0 +1,102 @@
+\begin{sphinxtheindex}
+\let\bigletter\sphinxstyleindexlettergroup
+\let\spxpagem \sphinxstyleindexpagemain
+\let\spxentry \sphinxstyleindexentry
+\let\spxextra \sphinxstyleindexextra
+
+  \bigletter {\sphinxsymbolsname}
+  \item \spxentry{\_\_generate\_parent()}\spxextra{Genetic method}, \hyperpage{2}
+  \item \spxentry{\_\_get\_child()}\spxextra{Genetic method}, \hyperpage{2}
+  \item \spxentry{\_\_get\_improvement()}\spxextra{Genetic method}, \hyperpage{2}
+  \item \spxentry{\_\_get\_improvement\_mp()}\spxextra{Genetic method}, \hyperpage{3}
+  \item \spxentry{\_\_local\_optimization()}\spxextra{Genetic method}, \hyperpage{3}
+  \item \spxentry{\_get\_swap\_indexes()}\spxextra{in module MolOpt.molecular.molecular}, 
+		\hyperpage{9}
+  \item \spxentry{\_receive()}\spxextra{Molecule method}, \hyperpage{5}
+
+  \indexspace
+  \bigletter C
+  \item \spxentry{catch()}\spxextra{Genetic static method}, \hyperpage{3}
+  \item \spxentry{catch()}\spxextra{MolOpt static method}, \hyperpage{12}
+  \item \spxentry{Chromosome}\spxextra{class in MolOpt.genetic.genetic}, \hyperpage{1}
+  \item \spxentry{copy()}\spxextra{Molecule method}, \hyperpage{5}
+  \item \spxentry{Create}\spxextra{class in MolOpt.genetic.genetic}, \hyperpage{1}
+  \item \spxentry{Crossover}\spxextra{class in MolOpt.genetic.genetic}, \hyperpage{1}
+  \item \spxentry{crossover\_1()}\spxextra{in module MolOpt.molecular.molecular}, \hyperpage{9}
+  \item \spxentry{crossover\_1()}\spxextra{MolOpt static method}, \hyperpage{12}
+  \item \spxentry{crossover\_2()}\spxextra{in module MolOpt.molecular.molecular}, \hyperpage{10}
+  \item \spxentry{crossover\_2()}\spxextra{MolOpt static method}, \hyperpage{13}
+  \item \spxentry{crossover\_n()}\spxextra{in module MolOpt.molecular.molecular}, \hyperpage{10}
+  \item \spxentry{crossover\_n()}\spxextra{MolOpt static method}, \hyperpage{13}
+
+  \indexspace
+  \bigletter D
+  \item \spxentry{display()}\spxextra{Genetic static method}, \hyperpage{3}
+  \item \spxentry{dist\_unit}\spxextra{Molecule property}, \hyperpage{5}
+
+  \indexspace
+  \bigletter G
+  \item \spxentry{Genetic}\spxextra{class in MolOpt.genetic.genetic}, \hyperpage{1}
+  \item \spxentry{get\_fitness()}\spxextra{Genetic method}, \hyperpage{3}
+  \item \spxentry{get\_fitness()}\spxextra{MolOpt method}, \hyperpage{13}
+  \item \spxentry{get\_value()}\spxextra{Molecule method}, \hyperpage{5}
+
+  \indexspace
+  \bigletter L
+  \item \spxentry{load()}\spxextra{Genetic method}, \hyperpage{3}
+  \item \spxentry{load()}\spxextra{Molecule static method}, \hyperpage{6}
+  \item \spxentry{local\_optimize()}\spxextra{Genetic method}, \hyperpage{3}
+  \item \spxentry{local\_optimize()}\spxextra{MolOpt method}, \hyperpage{13}
+
+  \indexspace
+  \bigletter M
+  \item \spxentry{module}
+    \subitem \spxentry{MolOpt.genetic.genetic}, \hyperpage{1}
+    \subitem \spxentry{MolOpt.molecular.molecular}, \hyperpage{5}
+    \subitem \spxentry{MolOpt.MolOpt}, \hyperpage{12}
+  \item \spxentry{Molecule}\spxextra{class in MolOpt.molecular.molecular}, \hyperpage{5}
+  \item \spxentry{MolOpt}\spxextra{class in MolOpt.MolOpt}, \hyperpage{12}
+  \item \spxentry{MolOpt.genetic.genetic}
+    \subitem \spxentry{module}, \hyperpage{1}
+  \item \spxentry{MolOpt.molecular.molecular}
+    \subitem \spxentry{module}, \hyperpage{5}
+  \item \spxentry{MolOpt.MolOpt}
+    \subitem \spxentry{module}, \hyperpage{12}
+  \item \spxentry{Mutate}\spxextra{class in MolOpt.genetic.genetic}, \hyperpage{4}
+  \item \spxentry{mutate\_angles()}\spxextra{in module MolOpt.molecular.molecular}, \hyperpage{10}
+  \item \spxentry{mutate\_angles()}\spxextra{Molecule method}, \hyperpage{8}
+  \item \spxentry{mutate\_angles()}\spxextra{MolOpt static method}, \hyperpage{14}
+  \item \spxentry{mutate\_best()}\spxextra{Genetic method}, \hyperpage{4}
+  \item \spxentry{mutate\_best()}\spxextra{in module MolOpt.genetic.genetic}, \hyperpage{4}
+  \item \spxentry{mutate\_distances()}\spxextra{in module MolOpt.molecular.molecular}, 
+		\hyperpage{11}
+  \item \spxentry{mutate\_distances()}\spxextra{Molecule method}, \hyperpage{8}
+  \item \spxentry{mutate\_distances()}\spxextra{MolOpt static method}, \hyperpage{14}
+  \item \spxentry{mutate\_first()}\spxextra{Genetic method}, \hyperpage{4}
+  \item \spxentry{mutate\_first()}\spxextra{in module MolOpt.genetic.genetic}, \hyperpage{5}
+
+  \indexspace
+  \bigletter O
+  \item \spxentry{optg()}\spxextra{in module MolOpt.molecular.molecular}, \hyperpage{11}
+  \item \spxentry{optg()}\spxextra{Molecule method}, \hyperpage{9}
+
+  \indexspace
+  \bigletter R
+  \item \spxentry{random\_molecule()}\spxextra{in module MolOpt.molecular.molecular}, 
+		\hyperpage{11}
+  \item \spxentry{randomize()}\spxextra{in module MolOpt.molecular.molecular}, \hyperpage{12}
+  \item \spxentry{randomize()}\spxextra{MolOpt static method}, \hyperpage{14}
+  \item \spxentry{run()}\spxextra{Genetic method}, \hyperpage{4}
+
+  \indexspace
+  \bigletter S
+  \item \spxentry{save()}\spxextra{Genetic method}, \hyperpage{4}
+  \item \spxentry{save()}\spxextra{Molecule method}, \hyperpage{9}
+  \item \spxentry{save()}\spxextra{MolOpt static method}, \hyperpage{14}
+  \item \spxentry{Strategies}\spxextra{class in MolOpt.genetic.genetic}, \hyperpage{4}
+  \item \spxentry{strategy\_str}\spxextra{Chromosome property}, \hyperpage{1}
+  \item \spxentry{swap\_mutate()}\spxextra{in module MolOpt.molecular.molecular}, \hyperpage{12}
+  \item \spxentry{swap\_mutate()}\spxextra{Molecule method}, \hyperpage{9}
+  \item \spxentry{swap\_mutate()}\spxextra{MolOpt static method}, \hyperpage{14}
+
+\end{sphinxtheindex}

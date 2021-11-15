@@ -436,7 +436,7 @@ def mutate_angles(molecule: Molecule, times: int = 1, label: str = None) -> Mole
     for _ in range(times):
         index0 = random.choice(range(3, len(new_molecule.geometry)))
         index1 = random.choice(range(4, len(new_molecule.geometry[index0]) + 1, 2))
-        if new_molecule.geometry[index0][index1].replace('.', '').isdigit():
+        if isinstance(new_molecule.geometry[index0][index1], (int, float)):
             new_molecule.geometry[index0][index1] = random.uniform(0, 360)
         else:
             new_molecule.parameters[new_molecule.geometry[index0][index1]] = random.uniform(0, 360)
@@ -463,7 +463,7 @@ def mutate_distances(molecule: Molecule, times: int = 1, label: str = None) -> M
     new_molecule = molecule.copy()
     for _ in range(times):
         index0 = random.choice(range(2, len(new_molecule.geometry)))
-        if new_molecule.geometry[index0][2].replace('.', '').isdigit():
+        if isinstance(new_molecule.geometry[index0][2], (int, float)):
             new_molecule.geometry[index0][2] = random.uniform(new_molecule.rand_range[0], 
                 new_molecule.rand_range[1])
         else:
@@ -575,14 +575,14 @@ def randomize(molecule: Molecule, label: str = None) -> Molecule:
     new_molecule = molecule.copy()
     new_molecule.label = label
     for row_index in range(2, len(new_molecule.geometry)):
-        if new_molecule.geometry[row_index][2].replace('.', '').isdigit():
+        if isinstance(new_molecule.geometry[row_index][2], (int, float)):
             new_molecule.geometry[row_index][2] = random.uniform(new_molecule.rand_range[0], 
                 new_molecule.rand_range[1])
         else:
             new_molecule.parameters[new_molecule.geometry[row_index][2]] =\
                 str(random.uniform(new_molecule.rand_range[0], new_molecule.rand_range[1]))
         for angle_index in range(4, len(new_molecule.geometry[row_index]), 2):
-            if new_molecule.geometry[row_index][angle_index].replace('.', '').isdigit():
+            if isinstance(new_molecule.geometry[row_index][angle_index], (int, float)):
                 new_molecule.geometry[row_index][angle_index] = random.uniform(0, 360)
             else:
                 new_molecule.parameters[new_molecule.geometry[row_index][angle_index]] = random.uniform(0, 360)

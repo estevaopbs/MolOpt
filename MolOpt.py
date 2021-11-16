@@ -1,7 +1,6 @@
 import os
 from MolOpt.genetic import *
 from MolOpt.molecular import *
-from typing import Union
 
 
 """Atomic clusters geometry optimization using genetic algorithm with Molpro
@@ -17,10 +16,10 @@ class MolOpt(Genetic):
     :param Genetic: Genetic algorithm abstract class
     :type Genetic: ABC
     """
-    def __init__(self, first_molecule: Molecule, energy_param: str, strategies: Strategies, max_age: Union[int, None], 
+    def __init__(self, first_molecule: Molecule, energy_param: str, strategies: Strategies, max_age: int | None, 
         pool_size: int, mutate_after_crossover: bool, crossover_elitism: list[int], elitism_rate: list[int], 
-        freedom_rate: int, parallelism: bool, local_opt: bool, max_seconds: Union[numeric, None], 
-        time_toler: Union[numeric, None], gens_toler: Union[int, None], max_gens: Union[int, None], 
+        freedom_rate: int, parallelism: bool, local_opt: bool, max_seconds: numeric | None, 
+        time_toler: numeric | None, gens_toler: int | None, max_gens: int | None, 
         save_directory: str, threads_per_calc: int) -> None:
         """Initializes the MolOpt object
 
@@ -32,7 +31,7 @@ class MolOpt(Genetic):
         :type strategies: Strategies
         :param max_age: The max amount of times a Chromosome can suffer chaging strategies without improve its fitness.
             if it's None then only improvements will be accepted
-        :type max_age: Union[int, None]
+        :type max_age: int | None
         :param pool_size: The amount of candidates being optimized together
         :type pool_size: int
         :param mutate_after_crossover: If it's True then, after each crossover operation, the resultant child Chromosome
@@ -44,14 +43,14 @@ class MolOpt(Genetic):
             crossover_elitism is [3, 2, 1] the best candidate has the triple of the chance to be selected than the 
             worst, the medium candidate has double. It can also receive None, and it means all candidates would be 
             equally probable to be selected for being the genes' donor on a crossover
-        :type crossover_elitism: Union[list[numeric], None]
+        :type crossover_elitism: list[numeric] | None
         :param elitism_rate: Reprodution rate of each candidate, from the best to the worst. the sum of its elements 
             also must be less or equal than pool_size. If pool_size is 16 and elitism_rate is [4, 3, 2] it means the 
             best candidate in the current generation's pool of candidates will provide 4 descendants for the next 
             generation, the second best will provide 3 and the third best will provide two, then the remains 7 available
             spaces in the next generation's pool will be filled with one descendant of each one of the seven next 
             candidates in this order
-        :type elitism_rate: Union[list[int], None]
+        :type elitism_rate: list[int] | None
         :param freedom_rate: The number of candidate generation strategies (Mutate, Crossover and Create) the candidate 
             will suffer aways a new candidate is needed to be generated
         :type freedom_rate: int
@@ -68,19 +67,19 @@ class MolOpt(Genetic):
         :param max_seconds: The max amount of seconds the genetic algorithm can run. Once exceeded this amount, the
             the running will be stoped and the best candidate will be returned. It can also receive None, and in this 
             case this limit wouldn't exist
-        :type max_seconds: Union[numeric, None]
+        :type max_seconds: numeric | None
         :param time_toler: The max amount of seconds the algorithm can still running without has any improvements on its
             best candidate's fitness. Once exceeded this amount, the running will be stoped and the best candidate will 
             be returned. It can also receive None, and in this case this limit wouldn't exist
-        :type time_toler: Union[numeric, None]
+        :type time_toler: numeric | None
         :param gens_toler: The maximum amount of generations the algorithm genetic can run in sequence without having
             any improvement on it's best parent fitness. It can also receive None and in this case this limit wouldn't 
             exist. It only works when parallelism is True, otherwise it doesn't affect anything
-        :type gens_toler: Union[numeric, None]
+        :type gens_toler: numeric | None
         :param max_gens: The max amount of generations the genetic algorithm can run. Once exceeded this amount, the
             the running will be stoped and the best candidate will be returned. It can also receive None, and in this 
             case this limit wouldn't exist. It only works when parallelism is True, otherwise it doesn't affect anything
-        :type max_gens: Union[numeric, None]
+        :type max_gens: numeric | None
         :param save_directory: The directory address relative to __main__ where the outputs will be saved. If its None
             than it will receive the instant of time the running started
         :type save_directory: str

@@ -2,25 +2,25 @@ import re
 import random
 import os
 import copy
-from typing import Tuple, TypeVar, Union
+from typing import Tuple, TypeAlias
 
 
 """Framework for dealing with molecular structures and genetic algorithm compatible with Molpro
 """
 
 
-numeric = Union[int, float]
+numeric = int | float
 
 
 class Molecule:
     """This class provides a framework for storing molecular geometry, generating Molpro inputs and store output 
     information. It also brings functions to work with genetic algorithm.
     """
-    Molecule = TypeVar('Molecule')
+    Molecule: TypeAlias = object
     __slots__ = ('basis', 'parameters', 'geometry', 'settings', 'rand_range', 'label', 'output_values', 'output',
         'optg_result', 'was_optg')
     
-    def __init__(self, basis: str, geometry: list[list[Union[str, numeric]]], settings: list[str], 
+    def __init__(self, basis: str, geometry: list[list[str | numeric]], settings: list[str], 
         parameters: dict[str, numeric] = dict(), rand_range: Tuple[numeric, numeric] = None, label: str = None, 
         output: str = None, output_values: dict[str, numeric] = dict(), was_optg: bool = False) -> None:
         """Initializes the Molecule object by receiving its parameters
@@ -28,7 +28,7 @@ class Molecule:
         :param basis: Hilbert space basis
         :type basis: str
         :param geometry: Z-matrix input
-        :type geometry: list[list[Union[str, numeric]]]
+        :type geometry: list[list[str | numeric]]
         :param settings: Molpro calculation settings
         :type settings: list[str]
         :param parameters: The values of geometry variables, defaults to dict()

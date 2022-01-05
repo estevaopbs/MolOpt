@@ -15,7 +15,7 @@ matplotlib.rcParams['figure.max_open_warning'] = 24
 class Data:
     """Reads the data from the genetic output folder and produces graphs using matplotlib
     """
-    def __init__(self, data_dir: str, save_dir: str = 'graphs'):
+    def __init__(self, data_dir: str, save_dir: str = 'graphs') -> None:
         """Initiates the object by receiving the directory created by the Genetic object
 
         :param data_dir: Directory created by the Genetic object which contains all saved data
@@ -54,7 +54,7 @@ class Data:
         return y_value
 
     def plot(self, *args: Tuple[str, str], format: str, fit_str: str = 'Fitness', mean_fit_str: str = 'Medium fitness',
-        time_str: str = 'Time', gen_str: str = 'Generation'):
+        time_str: str = 'Time', gen_str: str = 'Generation') -> None:
         """Produces the plots by receiving Tuples of with a the string correspondent to the paramter x and another
         correspondent to the parameter y. The x parameter strings can be: time; generation; n. The y parameter strings
         can be: best; mean; lineage; lineage_mean; improvement; lineage_best; improvements_strategies;

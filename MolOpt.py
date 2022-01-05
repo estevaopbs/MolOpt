@@ -85,13 +85,12 @@ class MolOpt(Genetic):
         :type save_directory: str
         :param threads_per_calc: Number of threads useds in each Molpro calculation
         :type threads_per_calc: int
-        
         """
+        self.energy_param = energy_param
+        self.threads_per_calc = threads_per_calc
         super().__init__(first_molecule, strategies, max_age, pool_size, mutate_after_crossover, crossover_elitism, 
             elitism_rate, freedom_rate, parallelism, local_opt, max_seconds, time_toler,gens_toler, max_gens, 
             save_directory)
-        self.energy_param = energy_param
-        self.threads_per_calc = threads_per_calc
 
     def get_fitness(self, candidate: Chromosome) -> float:
         """Receives a candidate's Chromosome and returns its fitness
@@ -103,13 +102,15 @@ class MolOpt(Genetic):
         """
         molecule = candidate.genes
         file_name = candidate.label
-        if candidate.label == '0_0':
-            return - float(molecule.get_value([self.energy_param], document=file_name, 
+        if self.energy_param in molecule.output_values.keys():
+            return - molecule.output_values[self.energy_param]
+        if candidate.label == '0_0' and self.parallelism:
+            return - (molecule.get_value([self.energy_param], document=file_name, 
                 directory=self.save_directory + '/data', 
                 nthreads=self.threads_per_calc * self.pool_size)[self.energy_param])
         if molecule.was_optg:
             return - molecule.output_values[self.energy_param]
-        return - float(molecule.get_value([self.energy_param], document=file_name, 
+        return - (molecule.get_value([self.energy_param], document=file_name, 
             directory=self.save_directory + '/data', 
             nthreads=self.threads_per_calc)[self.energy_param])
 
@@ -119,7 +120,7 @@ class MolOpt(Genetic):
 
         :param parent: Candidate which Molecule will suffer swap_mutate
         :type parent: Chromosome
-        :return: New molecule
+        :return: New Molecule
         :rtype: Molecule
         """
         return swap_mutate(parent.genes)
@@ -130,7 +131,7 @@ class MolOpt(Genetic):
 
         :param parent: Candidate which Molecule will suffer mutate_angles
         :type parent: Chromosome
-        :return: New molecule
+        :return: New Molecule
         :rtype: Molecule
         """
         return mutate_angles(parent.genes)
@@ -142,10 +143,21 @@ class MolOpt(Genetic):
 
         :param parent: Candidate which Molecule will suffer mutate_distances
         :type parent: Chromosome
-        :return: New molecule
+        :return: New Molecule
         :rtype: Molecule
         """
         return mutate_distances(parent.genes)
+
+    @staticmethod
+    def atom_displacement_mutate(parent: Chromosome) -> Molecule:
+        """Returns a parent's molecule's copy Selects two random atoms then swaps its positions
+
+        :param parent: Candidate which Molecule will suffer atom_displacement_mutate
+        :type parent: Chromosome
+        :return: New Molecule
+        :rtype: Molecule
+        """
+        return atom_displacement_mutate(parent.genes)
 
     @staticmethod
     def crossover_1(parent: Chromosome, donor: Chromosome) -> Molecule:
@@ -156,7 +168,7 @@ class MolOpt(Genetic):
         :type parent: Chromosome
         :param donor: Candidate which will donate parameters for the crossover_1 operation
         :type donor: Chromosome
-        :return: Child molecule
+        :return: Child Molecule
         :rtype: Molecule
         """
         return crossover_1(parent.genes, donor.genes)
@@ -170,7 +182,7 @@ class MolOpt(Genetic):
         :type parent: Chromosome
         :param donor: Candidate which will donate parameters for the crossover_1 operation
         :type donor: Chromosome
-        :return: Child molecule
+        :return: Child Molecule
         :rtype: Molecule
         """
         return crossover_2(parent.genes, donor.genes)
@@ -183,7 +195,7 @@ class MolOpt(Genetic):
         :type parent: Chromosome
         :param donor: Candidate which will donate parameters for the crossover_1 operation
         :type donor: Chromosome
-        :return: Child molecule
+        :return: Child Molecule
         :rtype: Molecule
         """
         return crossover_n(parent.genes, donor.genes)
@@ -194,10 +206,33 @@ class MolOpt(Genetic):
 
         :param parent: Candidate which Molecule will suffer randomize operation
         :type parent: Chromosome
-        :return: New molecule
+        :return: New Molecule
         :rtype: Molecule
         """
         return randomize(parent.genes)
+
+    @staticmethod
+    def ieq_mutate(parent: Chromosome) -> Molecule:
+        """Returns a parent's molecule's copy with two random parameters of the same kind (either distance or angle)
+        equalized 
+
+        :param parent: Candidate which Molecule will suffer ieq_mutate operation
+        :type parent: Chromosome
+        :return: New Molecule
+        :rtype: Molecule
+        """        
+        return ieq_mutate(parent.genes)
+
+    @staticmethod
+    def atom_swap_mutate(parent: Chromosome) -> Molecule:
+        """Returns a parent's molecule's copy with two atoms positions' swapped
+
+        :param parent: Candidate which Molecule will suffer atom_swap_mutate operation
+        :type parent: Chromosome
+        :return: New Molecule
+        :rtype: Molecule
+        """        
+        return atom_swap_mutate(parent.genes)
 
     def local_optimize(self, candidate: Chromosome) -> Molecule:
         """Executes geometric optimization over the candidate's molecule using Molpro and returns a new molecule with 
@@ -205,24 +240,23 @@ class MolOpt(Genetic):
 
         :param candidate: Candidate which Molecule will suffer local_optimize operation
         :type candidate: Chromosome
-        :return: Optimized molecule
+        :return: Optimized Molecule
         :rtype: Molecule
         """
         return optg(candidate.genes, self.energy_param, nthreads = self.pool_size * self.threads_per_calc)
 
-    @staticmethod
-    def catch(candidate: Chromosome) -> None:
+    def catch(self, candidate: Chromosome) -> None:
         """Static method which will be executed if an error occurs during a candidate generation
 
         :param candidate: Candidate which during generation some exception occurred
         :type candidate: Chromosome
         """
-        os.remove(f'data/{candidate.label}.inp')
-        os.remove(f'data/{candidate.label}.out')
-        os.remove(f'data/{candidate.label}.xml')
+        os.remove(f'{self.save_directory}/data/{candidate.label}.inp')
+        os.remove(f'{self.save_directory}/data/{candidate.label}.out')
+        os.remove(f'{self.save_directory}/data/{candidate.label}.xml')
 
     @staticmethod
-    def save(candidate: Chromosome, file_name: str, directory: str) -> None:
+    def save(candidate: Chromosome, file_name: str, directory: str) -> None:        
         """Saves the candidate data in a .inp document
 
         :param candidate: Candidate which data will be saved

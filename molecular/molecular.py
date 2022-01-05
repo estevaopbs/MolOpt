@@ -2,6 +2,7 @@ import re
 import random
 import os
 import copy
+from time import time
 from typing import Tuple, TypeAlias
 
 
@@ -62,6 +63,73 @@ class Molecule:
         :rtype: str
         """
         return self.geometry[0][0]
+
+    @property
+    def parameters_indexes(self) -> list[list[int, int]]:
+        """Returns the indexes of all distance/angle parameters in the z-matrix
+
+        :return: List of parameters' indexes
+        :rtype: list[list[int, int]]
+        """
+        if len(self.geometry) <= 2:
+            return []
+        elif len(self.geometry) == 3:
+            return [[2, 2]]
+        return [[2, 2], [3, 2], [3, 4]] + [[i, j] for i in range(4, len(self.geometry)) for j in [2, 4, 6]]
+
+    @property
+    def distances_indexes(self) -> list[list[int, int]]:
+        """Returns the indexes of all distance parameters in the z-matrix
+
+        :return: List of parameters' indexes
+        :rtype: list[list[int, int]]
+        """
+        if len(self.geometry) <= 2:
+            return []
+        return [[n, 2] for n in range(2, len(self.geometry))]
+
+    @property
+    def angles_indexes(self) -> list[list[int, int]]:
+        """Returns the indexes of all angle parameters in the z-matrix
+
+        :return: List of parameters' indexes
+        :rtype: list[list[int, int]]
+        """
+        if len(self.geometry) <= 3:
+            return []
+        elif len(self.geometry) == 3:
+            return [[3, 4]]
+        return [[3,4]] + [[i, j] for i in range(4, len(self.geometry)) for j in [4, 6]]
+
+    def random_distance(self) -> float:
+        """Returns a random number in the interval given by rand_range of the object
+
+        :return: Random number
+        :rtype: float
+        """
+        return random.uniform(self.rand_range[0], self.rand_range[1])
+
+    def random_compatible_indexes(self, amount: int = 2) -> list[list[int, int]]:
+        """Returns an amount of random indexes of the z-matrix with all indexes being of the same kind of parameter,
+        either distance or angle
+
+        :param amount: Amount of random compatible indexes, defaults to 2
+        :type amount: int, optional
+        :raises Exception: Raises an exception if there are less than three atoms
+        :return: Indexes
+        :rtype: list[list[int, int]]
+        """
+        if len(self.geometry) < 4:
+            raise  Exception('At least 3 atoms are needed')
+        elif len(self.geometry) == 4:
+            return [[2, 2], [3, 2]]
+        elif random.choices([True, False], [len(self.distances_indexes), len(self.angles_indexes)])[0]:
+            return random.sample(self.distances_indexes, amount)
+        else:
+            return random.sample(self.angles_indexes, amount)
+
+    def randomize(self, label:str = None) -> Molecule:
+        self._receive(randomize(self, label))
 
     def __str__(self) -> str:
         """Returns the Molpro input string
@@ -142,6 +210,8 @@ class Molecule:
             os.system(f'molpro -n {nthreads} ./{directory}/{document}.inp')
         with open(f'{directory}/{document}.out', 'r') as file:
             outstr = file.read()
+            if 'No convergence' in outstr:
+                raise Exception('No convergence')
         for item in wanted:
             output_dictionary.update({item: float(re.search('-*[0-9.]+', re.search(f'{item}.*', outstr)[0]\
                 .replace(item, ''))[0])})
@@ -154,7 +224,7 @@ class Molecule:
             self.output = f'{directory}/{document}.out'
         return output_dictionary
 
-    def optg(self, wanted: list[str], directory: str = 'data', nthreads: int = 1, keep_output= False) -> Molecule:
+    def optg(self, wanted: list[str], directory: str = 'data', nthreads: int = 1, keep_output= False) -> None:
         """Turns the molecule in its own geometric optimized version
 
         :param wanted: list of variables to be search in the output
@@ -167,28 +237,28 @@ class Molecule:
         :param keep_output: If it's True, the output will be kept, else it will be deleted after be read. 
             defaults to False
         :type keep_output: bool, optional
-        :return: Itself optmized version
-        :rtype: Molecule
         """
         self._receive(optg(self, wanted, directory, nthreads, keep_output))
-        return self
     
     def copy(self) -> Molecule:
         """Returns a totally independent copy of itself
 
-        :return: Copy of self
+        :return: Deepcopy of itself
         :rtype: Molecule
         """
         return copy.deepcopy(self)
     
-    def swap_mutate(self) -> Molecule:
+    def swap_mutate(self, times: int = 1, label: str = None) -> None:
         """Provokes a swap mutation in itsef
 
-        :return: Itself mutated
-        :rtype: Molecule
+        :param times: Amount of mutations, defaults to 1
+        :type times: int
+        :param label: A tag which can be used to identify the object. If it's None it will preserve the current label, 
+            defaults to None
+        :type label: str, optional
         """
-        self._receive(swap_mutate(self))
-        return self
+        label = label if label is not None else self.label
+        self._receive(swap_mutate(self, times, label))
 
     def _receive(self, molecule) -> None:
         """Receives all data from another molecule making the actual molecule its copy
@@ -205,134 +275,173 @@ class Molecule:
         self.output = molecule.output
         self.output_values = molecule.output_values
 
-    def mutate_distances(self, times: int = 1) -> Molecule:
+    def mutate_distances(self, times: int = 1, label: str = None) -> None:
         """Selects a random distance parameter from the geometry and assign it a random value in the range gave by 
         rand_range. This process is repeated a number of times equal to times
 
-        :param times: Number of mutations, defaults to 1
+        :param times: Amount of mutations, defaults to 1
         :type times: int
-        :return: Itself mutated
-        :rtype: Molecule
+        :param label: A tag which can be used to identify the object. If it's None it will preserve the current label, 
+            defaults to None
+        :type label: str, optional
         """
-        self._receive(mutate_distances(self, times))
-        return self
+        label = label if label is not None else self.label
+        self._receive(mutate_distances(self, times, label))
+
+    def ieq_mutate(self, times: int = 1, label: str = None) -> None:
+        """Randomly chooses two parameters of the same kind (either distance or angle) and set one to be equal to the
+        other
+
+        :param times: Amount of mutations, defaults to 1
+        :type times: int, optional
+        :param label: A tag which can be used to identify the object. If it's None it will preserve the current label, 
+            defaults to None
+        :type label: str, optional
+        """
+        label = label if label is not None else self.label
+        self._receive(ieq_mutate(self, times, label))
     
-    def mutate_angles(self, times: int = 1) -> Molecule:
+    def mutate_angles(self, times: int = 1, label: str = None) -> None:
         """Selects a random angle parameter from the geometry and assign it a random value between 0 and 360 degrees. 
         This process is repeated an amount of times equal to times
 
-        :param times: Number of mutations, defaults to 1
+        :param times: Amount of mutations, defaults to 1
         :type times: int, optional
-        :return: Itself mutated
-        :rtype: Molecule
+        :param label: A tag which can be used to identify the object. If it's None it will preserve the current label, 
+            defaults to None
+        :type label: str, optional
         """
-        self._receive(mutate_angles(self, times))
-        return self
+        label = label if label is not None else self.label
+        self._receive(mutate_angles(self, times, label))
+
+    def atom_displacement_mutate(self, times: int = 1, label: str = None) -> None:
+        """Randomly selects an atom and randomly changes all it's positional parameters
+
+        :param times: Amount of mutations that will be done, defaults to 1
+        :type times: int, optional
+        :param label: A tag which can be used to identify the object. If it's None it will preserve the current label, 
+            defaults to None
+        :type label: str, optional
+        """
+        label = label if label is not None else self.label
+        self._receive(atom_displacement_mutate(self, times, label))
+
+    def atom_swap_mutate(self, times: int = 1, label: str = None) -> None:
+        """Randomly select two atoms and swaps its positions
+
+        :param times: Amount of mutations that will be done, defaults to 1
+        :type times: int, optional
+        :param label: A tag which can be used to identify the object. If it's None it will preserve the current label, 
+            defaults to None
+        :type label: str, optional
+        """        
+        label = label if label is not None else self.label
+        self._receive(atom_swap_mutate(self, times, label))
 
     @staticmethod
     def load(file: str, rand_range: Tuple[numeric, numeric] = None, label: str = None, output: str = None, 
         output_values: dict[str, numeric] = dict(), was_optg: bool = False) -> Molecule:
         """Loads a molecule from a .inp document and returns its Molecule object
-        |br| 
-        |br| The file must have the one of the following structures:
-        |br| 
-        |br| \*\*\*,
-        |br| 
-        |br| basis={
-        |br| !
-        |br| ! aluminium            (6s,4p) -> [3s,2p]
-        |br| s, AL , 0.5605994123E+00, 0.1923360636E+00, 0.7304329554E+01, 0.1852570854E+01, 0.1343774607E+03, 0.2391912027E+02
-        |br| c, 1.2, -0.2983986045E+00, 0.1227982887E+01
-        |br| c, 3.4, 0.4947176920E-01, 0.9637824081E+00
-        |br| c, 5.6, 0.4301284983E+00, 0.6789135305E+00
-        |br| p, AL , 0.7304329554E+01, 0.1852570854E+01, 0.5605994123E+00, 0.1923360636E+00
-        |br| c, 1.2, 0.5115407076E+00, 0.6128198961E+00
-        |br| c, 3.4, 0.3480471912E+00, 0.7222523221E+00
-        |br| }
-        |br| 
-        |br| r1=2.706
-        |br| r2=2.414
-        |br| r3=2.481
-        |br| r4=2.817
-        |br| r5=2.529
-        |br| r6=2.547
-        |br| r7=2.510
-        |br| r8=2.401
-        |br| r9=2.666
-        |br| t1=66.357
-        |br| t2=65.256
-        |br| t3=115.675
-        |br| t4=107.280
-        |br| t5=105.113
-        |br| t6=97.637
-        |br| t7=104.449
-        |br| t8=63.620
-        |br| a1=104.0
-        |br| a2=89.4
-        |br| a3=345.8
-        |br| a4=272.6
-        |br| a5=43.5
-        |br| a6=341.2
-        |br| a7=238.2
-        |br| 
-        |br| geometry={ang
-        |br| Al
-        |br| Al,  1,     r1
-        |br| Al,  2,     r2 ,    1,      t1
-        |br| Al,  2,     r3 ,    1,     t2,       3,    a1
-        |br| Al,  3,     r4 ,    2,     t3,       1,     a2
-        |br| Al,  1,     r5 ,    2,     t4,       3,    a3
-        |br| Al,  5,     r6 ,    3,     t5,       2,    a4
-        |br| Al,  7,     r7,     5,      t6,      3,     a5
-        |br| Al,  5,     r8,     3,      t7,      2,    a6
-        |br| Al,  4,     r9,     2,      t8,      1,     a7
-        |br| }
-        |br| 
-        |br| SET,CHARGE=0
-        |br| direct
-        |br| {ks, b3lyp,maxit=200}
-        |br| 
-        |br| \-\-\-
-        |br| 
-        |br| or 
-        |br| 
-        |br| \*\*\*,
-        |br| 
-        |br| basis={
-        |br| !
-        |br| ! aluminium            (6s,4p) -> [3s,2p]
-        |br| s, AL , 0.5605994123E+00, 0.1923360636E+00, 0.7304329554E+01, 0.1852570854E+01, 0.1343774607E+03, 0.2391912027E+02
-        |br| c, 1.2, -0.2983986045E+00, 0.1227982887E+01
-        |br| c, 3.4, 0.4947176920E-01, 0.9637824081E+00
-        |br| c, 5.6, 0.4301284983E+00, 0.6789135305E+00
-        |br| p, AL , 0.7304329554E+01, 0.1852570854E+01, 0.5605994123E+00, 0.1923360636E+00
-        |br| c, 1.2, 0.5115407076E+00, 0.6128198961E+00
-        |br| c, 3.4, 0.3480471912E+00, 0.7222523221E+00
-        |br| }
-        |br| 
-        |br| geometry={ang
-        |br| Al
-        |br| Al,  1,     2.706
-        |br| Al,  2,     2.414,     1,      66.357
-        |br| Al,  2,     2.481,     1,      65.256,       3,     104.0
-        |br| Al,  3,     2.817,     2,      115.675,      1,     89.4
-        |br| Al,  1,     2.529,     2,      107.280,      3,     345.8
-        |br| Al,  5,     2.547,     3,      105.113,      2,     272.6
-        |br| Al,  7,     2.510,     5,      97.637,       3,     43.5
-        |br| Al,  5,     2.401,     3,      104.449,      2,     341.2
-        |br| Al,  4,     2.666,     2,      63.620,       1,     238.2
-        |br| }
-        |br| 
-        |br| SET,CHARGE=0
-        |br| direct
-        |br| {ks, b3lyp,maxit=200}
-        |br| 
-        |br| \-\-\-
-        |br| 
-        |br| Respecting empty lines between different sections of the file. That is, it must have one empty line between
+        
+        The file must have the one of the following structures:
+        
+        ***,
+        
+        basis={
+        !
+        ! aluminium            (6s,4p) -> [3s,2p]
+        s, AL , 0.5605994123E+00, 0.1923360636E+00, 0.7304329554E+01, 0.1852570854E+01, 0.1343774607E+03, 0.2391912027E+02
+        c, 1.2, -0.2983986045E+00, 0.1227982887E+01
+        c, 3.4, 0.4947176920E-01, 0.9637824081E+00
+        c, 5.6, 0.4301284983E+00, 0.6789135305E+00
+        p, AL , 0.7304329554E+01, 0.1852570854E+01, 0.5605994123E+00, 0.1923360636E+00
+        c, 1.2, 0.5115407076E+00, 0.6128198961E+00
+        c, 3.4, 0.3480471912E+00, 0.7222523221E+00
+        }
+        
+        r1=2.706
+        r2=2.414
+        r3=2.481
+        r4=2.817
+        r5=2.529
+        r6=2.547
+        r7=2.510
+        r8=2.401
+        r9=2.666
+        t1=66.357
+        t2=65.256
+        t3=115.675
+        t4=107.280
+        t5=105.113
+        t6=97.637
+        t7=104.449
+        t8=63.620
+        a1=104.0
+        a2=89.4
+        a3=345.8
+        a4=272.6
+        a5=43.5
+        a6=341.2
+        a7=238.2
+        
+        geometry={ang
+        Al
+        Al, 1, r1
+        Al, 2, r2, 1, t1
+        Al, 2, r3, 1, t2, 3, a1
+        Al, 3, r4, 2, t3, 1, a2
+        Al, 1, r5, 2, t4, 3, a3
+        Al, 5, r6, 3, t5, 2, a4
+        Al, 7, r7, 5, t6, 3, a5
+        Al, 5, r8, 3, t7, 2, a6
+        Al, 4, r9, 2, t8, 1, a7
+        }
+        
+        SET,CHARGE=0
+        direct
+        {ks, b3lyp,maxit=200}
+        
+        ---
+        
+        or 
+        
+        ***,
+        
+        basis={
+        !
+        ! aluminium            (6s,4p) -> [3s,2p]
+        s, AL , 0.5605994123E+00, 0.1923360636E+00, 0.7304329554E+01, 0.1852570854E+01, 0.1343774607E+03, 0.2391912027E+02
+        c, 1.2, -0.2983986045E+00, 0.1227982887E+01
+        c, 3.4, 0.4947176920E-01, 0.9637824081E+00
+        c, 5.6, 0.4301284983E+00, 0.6789135305E+00
+        p, AL , 0.7304329554E+01, 0.1852570854E+01, 0.5605994123E+00, 0.1923360636E+00
+        c, 1.2, 0.5115407076E+00, 0.6128198961E+00
+        c, 3.4, 0.3480471912E+00, 0.7222523221E+00
+        }
+        
+        geometry={ang
+        Al
+        Al, 1, 2.706
+        Al, 2, 2.414, 1, 66.357
+        Al, 2, 2.481, 1, 65.256, 3, 104.0
+        Al, 3, 2.817, 2, 115.675, 1, 89.4
+        Al, 1, 2.529, 2, 107.280, 3, 345.8
+        Al, 5, 2.547, 3, 105.113, 2, 272.6
+        Al, 7, 2.510, 5, 97.637, 3, 43.5
+        Al, 5, 2.401, 3, 104.449, 2, 341.2
+        Al, 4, 2.666, 2, 63.620, 1, 238.2
+        }
+        
+        SET,CHARGE=0
+        direct
+        {ks, b3lyp,maxit=200}
+        
+        ---
+        
+        Respecting empty lines between different sections of the file. That is, it must have one empty line between
         each section of the file. Here we can see we can have until six sections in the file: the beggining's section or
-        just '\*\*\*,', the basis' section, the parameters' section (that can exists or don't), the geometry's section, 
-        the settings' section and the end section or just '\-\-\-'. The order of the sections also must respect the
+        just '***,', the basis' section, the parameters' section (that can exists or don't), the geometry's section, 
+        the settings' section and the end section or just '---'. The order of the sections also must respect the
         order of the chosen structure. The second structure, that is the structure with literal numbers inside the
         geometry brackets is not compatible with optg function, so the first structure, that is the one with declared
         variables before the geometry is aways recommended
@@ -379,44 +488,42 @@ def swap_mutate(molecule: Molecule, times: int = 1, label: str = None) -> Molecu
 
     :param molecule: Original molecule
     :type molecule: Molecule
-    :param times: Number of random swaps, defaults to 1
+    :param times: Amount of random swaps, defaults to 1
     :type times: int, optional
     :param label: Label of the new molecule, defaults to None
     :type label: str, optional
     :return: New molecule
     :rtype: Molecule
     """
+    if len(molecule.geometry) < 4:
+        raise Exception('At least 3 atoms are needed')
     new_molecule = molecule.copy()
     for _ in range(times):
-        index0, index1, index2, index3 = 0, 0, 0, 0
-        while (index0, index1) == (index2, index3):
-            index0, index1, index2, index3 = _get_swap_indexes(new_molecule)
-        new_molecule.geometry[index0][index1], new_molecule.geometry[index2][index3] =\
-        new_molecule.geometry[index2][index3], new_molecule.geometry[index0][index1]
+        indexes = new_molecule.random_compatible_indexes()
+        index0, index1 = indexes[0]
+        index2, index3 = indexes[1]
+        if not new_molecule.geometry[index0][index1] in new_molecule.parameters.keys() and not\
+            new_molecule.geometry[index2][index3] in new_molecule.parameters.keys():
+            new_molecule.geometry[index0][index1], new_molecule.geometry[index2][index3] =\
+                new_molecule.geometry[index2][index3], new_molecule.geometry[index0][index1]
+        elif not new_molecule.geometry[index0][index1] in new_molecule.parameters.keys() and\
+            new_molecule.geometry[index2][index3] in new_molecule.parameters.keys():
+            new_molecule.geometry[index0][index1], new_molecule.parameters[new_molecule.geometry[index2][index3]] =\
+                new_molecule.parameters[new_molecule.geometry[index2][index3]], new_molecule.geometry[index0][index1]
+        elif new_molecule.geometry[index0][index1] in new_molecule.parameters.keys() and not\
+            new_molecule.geometry[index2][index3] in new_molecule.parameters.keys():
+            new_molecule.parameters[new_molecule.geometry[index0][index1]], new_molecule.geometry[index2][index3] =\
+                new_molecule.geometry[index2][index3], new_molecule.parameters[new_molecule.geometry[index0][index1]]
+        else:
+            new_molecule.parameters[new_molecule.geometry[index0][index1]],\
+                new_molecule.parameters[new_molecule.geometry[index2][index3]] =\
+                    new_molecule.parameters[new_molecule.geometry[index2][index3]],\
+                        new_molecule.parameters[new_molecule.geometry[index0][index1]]
     new_molecule.output = None
     new_molecule.output_values = dict()
     new_molecule.label = label
     new_molecule.was_optg = False
     return new_molecule
-
-
-def _get_swap_indexes(new_molecule:Molecule) -> Tuple[int, int, int, int]:
-    """Randomly choices the indexes of the parameters that will be swapped
-
-    :param new_molecule: Copy of the original moecule
-    :type new_molecule: Molecule
-    :return: A tuple with the four indexes needed to perform the swap
-    :rtype: Tuple[int, int, int, int]
-    """
-    index0 = random.choice(range(2, len(new_molecule.geometry)))
-    index1 = random.choice(range(2, len(new_molecule.geometry[index0]) + 1, 2))
-    if index1 == 2:
-        index2 = random.choice(range(2, len(new_molecule.geometry)))
-        index3 = 2
-    else:
-        index2 = random.choice(range(3, len(new_molecule.geometry)))
-        index3 = random.choice(range(4, len(new_molecule.geometry[index2]) + 1, 2))
-    return (index0, index1, index2, index3)
 
 
 def mutate_angles(molecule: Molecule, times: int = 1, label: str = None) -> Molecule:
@@ -464,11 +571,9 @@ def mutate_distances(molecule: Molecule, times: int = 1, label: str = None) -> M
     for _ in range(times):
         index0 = random.choice(range(2, len(new_molecule.geometry)))
         if isinstance(new_molecule.geometry[index0][2], (int, float)):
-            new_molecule.geometry[index0][2] = random.uniform(new_molecule.rand_range[0], 
-                new_molecule.rand_range[1])
+            new_molecule.geometry[index0][2] = new_molecule.random_distance()
         else:
-            new_molecule.parameters[new_molecule.geometry[index0][2]] = random.uniform(new_molecule.rand_range[0], 
-                new_molecule.rand_range[1])
+            new_molecule.parameters[new_molecule.geometry[index0][2]] = new_molecule.random_distance()
     new_molecule.output = None
     new_molecule.output_values = dict()
     new_molecule.label = label
@@ -533,28 +638,14 @@ def crossover_n(parent: Molecule, donor: Molecule, label: str = None) -> Molecul
     :return: Child molecule
     :rtype: Molecule
     """
+    if len(parent.geometry) < 4:
+        raise Exception('At least 3 atoms are needed')
     child = parent.copy()
+    total_n_parameters = 3 + 3 * len(parent.geometry[4:])
+    n_parameters = random.randint(1, total_n_parameters - 1)
+    chosen_parameters = random.sample(child.parameters_indexes, n_parameters)
+    __crossover_executor(child, donor, chosen_parameters)
     child.label = label
-    if len(child.parameters) > 0:
-        n_parameters = random.randint(1, len(child.parameters) - 1)
-    else:
-        n_parameters = 0
-    n_atoms = random.randint(1, len(child.geometry) - 3)
-    parameters_indexes = []
-    atoms_indexes = []
-    for _ in range(n_parameters):
-        index = random.randint(0, len(child.parameters) - 1)
-        while index in parameters_indexes:
-            index = random.randint(0, len(child.parameters) - 1)
-        parameters_indexes.append(index)
-        key = list(child.parameters.keys())[index]
-        child.parameters[key] = donor.parameters[key]
-    for _ in range(n_atoms):
-        index = random.randint(2, len(child.geometry) - 1)
-        while index in atoms_indexes:
-            index = random.randint(2, len(child.geometry) - 1)
-        atoms_indexes.append(index)
-        child.geometry[index] = donor.geometry[index]
     child.output = None
     child.output_values = dict()
     child.was_optg = False
@@ -576,11 +667,9 @@ def randomize(molecule: Molecule, label: str = None) -> Molecule:
     new_molecule.label = label
     for row_index in range(2, len(new_molecule.geometry)):
         if isinstance(new_molecule.geometry[row_index][2], (int, float)):
-            new_molecule.geometry[row_index][2] = random.uniform(new_molecule.rand_range[0], 
-                new_molecule.rand_range[1])
+            new_molecule.geometry[row_index][2] = new_molecule.random_distance()
         else:
-            new_molecule.parameters[new_molecule.geometry[row_index][2]] =\
-                str(random.uniform(new_molecule.rand_range[0], new_molecule.rand_range[1]))
+            new_molecule.parameters[new_molecule.geometry[row_index][2]] = new_molecule.random_distance()
         for angle_index in range(4, len(new_molecule.geometry[row_index]), 2):
             if isinstance(new_molecule.geometry[row_index][angle_index], (int, float)):
                 new_molecule.geometry[row_index][angle_index] = random.uniform(0, 360)
@@ -606,22 +695,16 @@ def crossover_1(parent: Molecule, donor: Molecule, label: str = None) -> Molecul
     :return: Child molecule
     :rtype: Molecule
     """
+    if len(parent.geometry) < 4:
+        raise Exception('At least 3 atoms are needed')
     child = parent.copy()
-    keys = list(child.parameters.keys())
-    child.label = label
-    index = random.choice(range(2, len(child.geometry)))
-    if random.choice([True, False]):
-        child.geometry[index:] = donor.geometry[index:]
+    cutoff_index = random.randint(1, len(child.parameters_indexes) - 2)
+    if bool(random.getrandbits(1)):
+        chosen_parameters = child.parameters_indexes[cutoff_index:]
     else:
-        child.geometry[:index] = donor.geometry[:index]
-    if len(child.parameters) > 0:
-        index = random.choice(range(0, len(child.parameters)))
-        if random.choice([True, False]):
-            for parameter in keys[index:]:
-                child.parameters[parameter] = donor.parameters[parameter]
-        else:
-            for parameter in keys[:index]:
-                child.parameters[parameter] = donor.parameters[parameter]
+        chosen_parameters = child.parameters_indexes[:cutoff_index]
+    __crossover_executor(child, donor, chosen_parameters)
+    child.label = label
     child.output = None
     child.output_values = dict()
     child.was_optg = False
@@ -645,38 +728,99 @@ def crossover_2(parent: Molecule, donor: Molecule, label: str = None) -> Molecul
     :rtype: Molecule
     """
     if len(parent.geometry) < 5:
-        raise Exception('Molecules does not has enough atoms for crossover_2.')
+        raise Exception('At least 4 atoms are needed')
     child = parent.copy()
+    indexes = random.sample(range(1, len(child.parameters_indexes) - 1), 2)
+    indexes.sort()
+    if bool(random.getrandbits(1)):
+        chosen_parameters = child.parameters_indexes[indexes[0]:indexes[1]]
+    else:
+        chosen_parameters = child.parameters_indexes[:indexes[0]] + child.parameters_indexes[indexes[1]:]
+    __crossover_executor(child, donor, chosen_parameters)
     child.label = label
     child.output = None
     child.output_values = dict()
-    index1 = random.choice(range(2, len(child.geometry)))
-    index2 = random.choice(range(2, len(child.geometry)))
-    while index1 == index2 or ((index1 == 2 and index2 == len(child.geometry) - 1) \
-        or (index1 == len(child.geometry) - 1 and index2 == 2)):
-        index1 = random.choice(range(2, len(child.geometry)))
-        index2 = random.choice(range(2, len(child.geometry)))
-    if index1 > index2:
-        index1, index2 = index2, index1
-    if random.choice([True, False]):
-        child.geometry[:index1] = donor.geometry[:index1]
-        child.geometry[index2:] = donor.geometry[index2:]
-    else:
-        child.geometry[index1:index2] = donor.geometry[index1:index2]
-    if len(child.parameters) > 0:
-        keys = list(child.parameters.keys())
-        index1 = random.choice(range(0, len(child.parameters)))
-        index2 = random.choice(range(0, len(child.parameters)))
-        if index1 > index2:
-            index1, index2 = index2, index1
-        if random.choice([True, False]):
-            for parameter in keys[:index1] + keys[index2:]:
-                child.parameters[parameter] = donor.parameters[parameter]
-        else:
-            for parameter in keys[index1:index2]:
-                child.parameters[parameter] = donor.parameters[parameter]
     child.was_optg = False
     return child
+
+
+def __crossover_executor(child: Molecule, donor: Molecule, params_indexes: list[list[int, int]]) -> None:
+    """Executes the crossover operation by filtering if it either must ne done directly in the geometry or indirectly in
+    the parameters dictionary
+
+    :param child: Child Molecule, which is a deepcopy of the parent Molecule
+    :type child: Molecule
+    :param donor: Donor Molecule
+    :type donor: Molecule
+    :param params_indexes: list of the parameters' indexes of the child molecule that will be replaced by donor's
+        parameters
+    :type params_indexes: list[list[int, int]]
+    """
+    for indexes in params_indexes:
+        if child.geometry[indexes[0]][indexes[1]] in child.parameters.keys() and\
+            donor.geometry[indexes[0]][indexes[1]] in donor.parameters.keys():
+            child.parameters[child.geometry[indexes[0]][indexes[1]]] =\
+                donor.parameters[donor.geometry[indexes[0]][indexes[1]]]
+        elif not child.geometry[indexes[0]][indexes[1]] in child.parameters.keys() and\
+            donor.geometry[indexes[0]][indexes[1]] in donor.parameters.keys():
+            child.geometry[indexes[0]][indexes[1]] =\
+                donor.parameters[donor.geometry[indexes[0]][indexes[1]]]
+        elif child.geometry[indexes[0]][indexes[1]] in child.parameters.keys() and not\
+            donor.geometry[indexes[0]][indexes[1]] in donor.parameters.keys():
+            child.parameters[child.geometry[indexes[0]][indexes[1]]] =\
+                donor.geometry[indexes[0]][indexes[1]]
+        else:
+            child.geometry[indexes[0]][indexes[1]] = donor.geometry[indexes[0]][indexes[1]]
+
+
+def atom_displacement_mutate(molecule: Molecule, times: int = 1, label: str = None) -> Molecule:
+    """Creates a new molecule which will be a copy of the input molecule with one random atom randomly displaced. It
+    will randomly select an atom and randomly change all it's positional parameters
+
+    :param molecule: Parent Molecule
+    :type molecule: Molecule
+    :param times: Amount of random displacements that will be realized, defaults to 1
+    :type times: int, optional
+    :param label: A tag which can be used to identify the child molecule, defaults to None
+    :type label: str, optional
+    :raises Exception: Raises an exception if there are less than two atoms
+    :return: Child Molecule
+    :rtype: Molecule
+    """
+    if len(molecule.geometry) < 3:
+        raise Exception("At least two atoms are needed")
+    new_molecule = molecule.copy()
+    for _ in range(times):
+        atom_index = random.choice(range(len(molecule.geometry[2:]))) + 2
+        if atom_index == 2:
+            if new_molecule.geometry[2][2] in new_molecule.parameters.keys():
+                new_molecule.parameters[new_molecule.geometry[2][2]] = new_molecule.random_distance()
+            else:
+                new_molecule.geometry[2][2] = new_molecule.random_distance()
+        if atom_index == 3:
+            if new_molecule.geometry[3][2] in new_molecule.parameters.keys():
+                new_molecule.parameters[new_molecule.geometry[3][2]] = new_molecule.random_distance()
+            else:
+                new_molecule.geometry[3][2] = new_molecule.random_distance()
+            if new_molecule.geometry[3][4] in new_molecule.parameters.keys():
+                new_molecule.parameters[new_molecule.geometry[3][4]] = random.uniform(0, 360)
+            else:
+                new_molecule.geometry[3][4] = random.uniform(0, 360)
+        if atom_index > 3:
+            if new_molecule.geometry[atom_index][2] in new_molecule.parameters.keys():
+                new_molecule.parameters[new_molecule.geometry[atom_index][2]] = new_molecule.random_distance()
+            else:
+                new_molecule.geometry[atom_index][2] = new_molecule.random_distance()
+            if new_molecule.geometry[atom_index][4] in new_molecule.parameters.keys():
+                new_molecule.parameters[new_molecule.geometry[atom_index][4]] = random.uniform(0, 360)
+            else:
+                new_molecule.geometry[atom_index][4] = random.uniform(0, 360)
+            if new_molecule.geometry[atom_index][6] in new_molecule.parameters.keys():
+                new_molecule.parameters[new_molecule.geometry[atom_index][6]] = random.uniform(0, 360)
+            else:
+                new_molecule.geometry[atom_index][6] = random.uniform(0, 360)
+    new_molecule.label = label
+    return new_molecule
 
 
 def optg(molecule: Molecule, wanted_energy: str, directory: str = 'data', nthreads: int = 1, 
@@ -728,3 +872,74 @@ def optg(molecule: Molecule, wanted_energy: str, directory: str = 'data', nthrea
         opt_molecule.label = None
     opt_molecule.was_optg = True
     return opt_molecule
+
+
+def ieq_mutate(molecule: Molecule, times: int = 1, label: str = None) -> Molecule:
+    """Returns a new molecule which will be a copy of the input molecule which will have two random parameters
+    equalized. The parameters chosen will be compatible, it means, the both will be either distance parameters or angle
+    distance
+
+    :param molecule: Parent molecule
+    :type molecule: Molecule
+    :param times: amount of random equalizations, defaults to 1
+    :type times: int, optional
+    :param label: A tag which can be used to identify the child molecule, defaults to None
+    :type label: str, optional
+    :raises Exception: Raises an exception if there are less than three atoms
+    :return: Child Molecule
+    :rtype: Molecule
+    """
+    if len(molecule.geometry) < 4:
+        raise Exception('At least 3 atoms are needed')
+    new_molecule = molecule.copy()
+    for _ in range(times):
+        indexes = new_molecule.random_compatible_indexes()
+        index0, index1 = indexes[0]
+        index2, index3 = indexes[1]
+        if not new_molecule.geometry[index0][index1] in new_molecule.parameters.keys() and not\
+            new_molecule.geometry[index2][index3] in new_molecule.parameters.keys():
+            new_molecule.geometry[index0][index1] = new_molecule.geometry[index2][index3]
+        elif not new_molecule.geometry[index0][index1] in new_molecule.parameters.keys() and\
+            new_molecule.geometry[index2][index3] in new_molecule.parameters.keys():
+            new_molecule.geometry[index0][index1] = new_molecule.parameters[new_molecule.geometry[index2][index3]]
+        elif new_molecule.geometry[index0][index1] in new_molecule.parameters.keys() and not\
+            new_molecule.geometry[index2][index3] in new_molecule.parameters.keys():
+            new_molecule.parameters[new_molecule.geometry[index0][index1]] = new_molecule.geometry[index2][index3]
+        else:
+            new_molecule.parameters[new_molecule.geometry[index0][index1]] =\
+                new_molecule.parameters[new_molecule.geometry[index2][index3]]
+    new_molecule.label = label
+    new_molecule.output = None
+    new_molecule.output_values = dict()
+    new_molecule.was_optg = False
+    return new_molecule
+
+
+def atom_swap_mutate(molecule: Molecule, times: int = 1, label: str = None) -> Molecule:
+    """Returns a new molecule which will be a copy of the input molecule with two atom with swapped positions
+
+    :param molecule: Parent molecule
+    :type molecule: Molecule
+    :param times: The amount of position swaps that will occur, defaults to 1
+    :type times: int, optional
+    :param label: A tag which can be used to identify the child molecule, defaults to None
+    :type label: str, optional
+    :raises Exception: Raises an exception if there are less than two atoms
+    :return: Child molecule
+    :rtype: Molecule
+    """
+    if len(molecule.geometry) < 3:
+        raise Exception('At least 2 atoms are needed')
+    new_molecule = molecule.copy()
+    for _ in range(times):
+        atoms_indexes = [n + 1 for n in range(len(new_molecule.geometry) - 1)]
+        indexes = random.sample(atoms_indexes, 2)
+        while new_molecule.geometry[indexes[0]][0] == new_molecule.geometry[indexes[1]][0]:
+            indexes = random.sample(atoms_indexes, 2)
+        new_molecule.geometry[indexes[0]][0], new_molecule.geometry[indexes[1]][0] =\
+            new_molecule.geometry[indexes[1]][0], new_molecule.geometry[indexes[0]][0]
+    new_molecule.label = label
+    new_molecule.output = None
+    new_molecule.output_values = dict()
+    new_molecule.was_optg = False
+    return new_molecule

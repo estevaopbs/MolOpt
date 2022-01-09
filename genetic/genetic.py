@@ -6,6 +6,7 @@ from typing import Any, Tuple, TypeAlias
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime
+from __future__ import annotations
 import random
 import copy
 import os
@@ -23,12 +24,10 @@ Fitness: TypeAlias = Any
 class Chromosome:
     """Object that represents the candidates.
     """
-    Chromosome: TypeAlias = object
-    Genetic: TypeAlias = object
     __slots__ = ('genes', 'fitness', 'strategy', 'age', 'lineage', 'label', 'genetic')
     
     def __init__(self, genes: Any = None, fitness: Any = None, strategy: list[Callable[[Chromosome], Genes]] = [], 
-        age: int = 0, lineage: list = [], label: str = None, genetic: Genetic = None) -> None:
+        age: int = 0, lineage: list = [], label: str = None, genetic: Genetic = None) -> Chromosome:
         """Initializes the Chromosome object
 
         :param genes: What is wanted to optimize
@@ -44,6 +43,8 @@ class Chromosome:
         :type lineage: list[Chromosome], optional
         :param label: A tag which can be used to identify the Chromosome object, defaults to None
         :type label: str, optional
+        :return: Chromosome object
+        :rtype: Chromosome
         """
         self.genes = genes
         self.fitness = fitness
@@ -80,7 +81,7 @@ class Mutate:
     """
     __slots__ = ('methods', 'rate', 'genetic')
     
-    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> None:
+    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> Mutate:
         """Initializes the Mutate object by receiving its parameters
 
         :param methods: Functions which receives a Chromosome object and returns a new genes
@@ -89,6 +90,8 @@ class Mutate:
             to have the same lenght as methods. Suppose methods is [m1, m2, m3] and methods_rate is  [1, 2, 3]. m2 tends
             to be chosen twice the m1 is and m3 thrice the m1 is
         :type methods_rate: list[numeric]
+        :return: Mutate object
+        :rtype: Mutate
         """
         self.methods = methods
         self.rate = methods_rate
@@ -121,7 +124,7 @@ class Crossover:
     """
     __slots__ = ('methods', 'rate', 'genetic')
 
-    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> None:
+    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> Crossover:
         """Initializes the Crossover object by receiving its parameters
 
         :param methods: Functions which receives two Chromosome objects and returns a new genes
@@ -130,6 +133,8 @@ class Crossover:
             must to have the same lenght as methods. Suppose methods is [m1, m2, m3] and methods_rate is  [1, 2, 3]. m2 
             tends to be chosen twice the m1 is and m3 thrice the m1 is
         :type methods_rate: list[numeric]
+        :return: Crossover object
+        :rtype: Crossover
         """
         self.methods = methods
         self.rate = methods_rate
@@ -166,7 +171,7 @@ class Create:
     """
     __slots__ = ('methods', 'rate', 'genetic')
 
-    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> None:
+    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> Create:
         """Initializes the Crossover object by receiving its parameters
 
         :param methods: Functions which receives the first_parent Chromosome and returns a new genes
@@ -175,6 +180,8 @@ class Create:
             must to have the same lenght as methods. Suppose methods is [m1, m2, m3] and methods_rate is  [1, 2, 3]. m2 
             tends to be chosen twice the m1 is and m3 thrice the m1 is
         :type methods_rate: list[numeric]
+        :return: Create object
+        :rtype: Create
         """
         self.methods = methods
         self.rate = methods_rate
@@ -206,7 +213,7 @@ class Strategies:
     """
     __slots__ = ('strategies', 'rate')
 
-    def __init__(self, strategies: Tuple[Mutate, Crossover, Create], strategies_rate: list[numeric]) -> None:
+    def __init__(self, strategies: Tuple[Mutate, Crossover, Create], strategies_rate: list[numeric]) -> Strategies:
         """Initializes the Strategies object by receiving its parameters
 
         :param strategies: A list with Create, Mutate and Crossover objects
@@ -215,6 +222,8 @@ class Strategies:
             Strategies object is called. It must to have the same lenght as methods. Suppose strategies is [s1, s2, s3] 
             and strategies_rate is  [1, 2, 3]. s2 tends to be chosen twice the s1 is and s3 thrice the s1 is
         :type strategies_rate: list[numeric]
+        :return: Strategies object
+        :rtype: Strategies
         """
         self.strategies = strategies
         self.rate = strategies_rate
@@ -285,7 +294,7 @@ class Genetic(ABC):
         mutate_after_crossover: bool, crossover_elitism: list[numeric] | None, 
         elitism_rate: list[int] | None, freedom_rate: int, parallelism: bool, local_opt: bool, 
         max_seconds: numeric | None, time_toler: numeric | None, gens_toler: numeric | None, 
-        max_gens: numeric | None, save_directory: str) -> None:
+        max_gens: numeric | None, save_directory: str) -> Genetic:        
         """Initializes the Genetic object by receiving its parameters
 
         :param first_genes: The genes of the first candidate in the genetic algorithm
@@ -346,6 +355,8 @@ class Genetic(ABC):
         :param save_directory: The directory address relative to __main__ where the outputs will be saved. If it's None
             than it will receive the instant of time the running started
         :type save_directory: str
+        :return: Genetic object
+        :rtype: Genetic
         """
         self.strategies = copy.deepcopy(strategies)
         self.max_age = max_age
@@ -390,7 +401,7 @@ class Genetic(ABC):
 
         :param candidate: Candidate wich fitness is wanted
         :type candidate: Fitness
-        :type parent: Candidate's fitness
+        :return: Candidate's fitness
         :rtype: Fitness
         """
         pass

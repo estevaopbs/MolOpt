@@ -1,4 +1,5 @@
 import os
+from __future__ import annotations
 from MolOpt.genetic import *
 from MolOpt.molecular import *
 
@@ -20,7 +21,7 @@ class MolOpt(Genetic):
         pool_size: int, mutate_after_crossover: bool, crossover_elitism: list[int], elitism_rate: list[int], 
         freedom_rate: int, parallelism: bool, local_opt: bool, max_seconds: numeric | None, 
         time_toler: numeric | None, gens_toler: int | None, max_gens: int | None, 
-        save_directory: str, threads_per_calc: int) -> None:
+        save_directory: str, threads_per_calc: int) -> MolOpt:
         """Initializes the MolOpt object
 
         :param first_molecule: Molecule which is wanted to be optimized

@@ -1,5 +1,5 @@
-import os
 from __future__ import annotations
+import os
 from MolOpt.genetic import *
 from MolOpt.molecular import *
 

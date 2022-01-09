@@ -1,3 +1,4 @@
+from __future__ import annotations
 import time
 from bisect import bisect_left
 from math import exp
@@ -6,7 +7,6 @@ from typing import Any, Tuple, TypeAlias
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime
-from __future__ import annotations
 import random
 import copy
 import os

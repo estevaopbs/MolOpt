@@ -1,9 +1,9 @@
+from __future__ import annotations
 import re
 import random
 import os
 import copy
 from typing import Tuple
-from __future__ import annotations
 
 
 """Framework for dealing with molecular structures and genetic algorithm compatible with Molpro

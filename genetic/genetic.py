@@ -17,8 +17,8 @@ import os
 
 
 numeric = int | float
-Genes: TypeAlias = Any
-Fitness: TypeAlias = Any
+Genes: TypeAlias = 'Genes'
+Fitness: TypeAlias = 'Fitness'
 
 
 class Chromosome:

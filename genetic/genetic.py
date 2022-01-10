@@ -293,8 +293,8 @@ class Genetic(ABC):
     def __init__(self, first_genes: Chromosome, strategies: Strategies, max_age: int | None, pool_size: int, 
         mutate_after_crossover: bool, crossover_elitism: list[numeric] | None, 
         elitism_rate: list[int] | None, freedom_rate: int, parallelism: bool, local_opt: bool, 
-        max_seconds: numeric | None, time_toler: numeric | None, gens_toler: numeric | None, 
-        max_gens: numeric | None, save_directory: str) -> Genetic:        
+        max_seconds: numeric | None, time_toler: numeric | None, gens_toler: int | None, 
+        max_gens: int | None, save_directory: str) -> Genetic:        
         """Initializes the Genetic object by receiving its parameters
 
         :param first_genes: The genes of the first candidate in the genetic algorithm
@@ -347,11 +347,11 @@ class Genetic(ABC):
         :param gens_toler: The maximum amount of generations the algorithm genetic can run in sequence without having
             any improvement on it's best parent fitness. It can also receive None and in this case this limit wouldn't 
             exist. It only works when parallelism is True, otherwise it doesn't affect anything
-        :type gens_toler: numeric | None
+        :type gens_toler: int | None
         :param max_gens: The max amount of generations the genetic algorithm can run. Once exceeded this amount, the
             the running will be stoped and the best candidate will be returned. It can also receive None, and in this 
             case this limit wouldn't exist. It only works when parallelism is True, otherwise it doesn't affect anything
-        :type max_gens: numeric | None
+        :type max_gens: int | None
         :param save_directory: The directory address relative to __main__ where the outputs will be saved. If it's None
             than it will receive the instant of time the running started
         :type save_directory: str

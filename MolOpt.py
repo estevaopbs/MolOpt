@@ -9,6 +9,7 @@ from MolOpt.molecular import *
 
 
 Fitness = float
+Genes = Molecule
 
 
 class MolOpt(Genetic):

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import matplotlib.pyplot as plt
 import matplotlib
 import tikzplotlib
@@ -15,7 +16,7 @@ matplotlib.rcParams['figure.max_open_warning'] = 24
 class Data:
     """Reads the data from the genetic output folder and produces graphs using matplotlib
     """
-    def __init__(self, data_dir: str, save_dir: str = 'graphs') -> None:
+    def __init__(self, data_dir: str, save_dir: str = 'graphs') -> Data:
         """Initiates the object by receiving the directory created by the Genetic object
 
         :param data_dir: Directory created by the Genetic object which contains all saved data

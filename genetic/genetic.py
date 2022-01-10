@@ -3,7 +3,7 @@ import time
 from bisect import bisect_left
 from math import exp
 import multiprocessing as mp
-from typing import Any, Tuple, TypeAlias
+from typing import Tuple, TypeAlias
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime
@@ -26,15 +26,15 @@ class Chromosome:
     """
     __slots__ = ('genes', 'fitness', 'strategy', 'age', 'lineage', 'label', 'genetic')
     
-    def __init__(self, genes: Any = None, fitness: Any = None, strategy: list[Callable[[Chromosome], Genes]] = [], 
+    def __init__(self, genes: Genes = None, fitness: Fitness = None, strategy: list[Callable[[Chromosome], Genes]] = [], 
         age: int = 0, lineage: list = [], label: str = None, genetic: Genetic = None) -> Chromosome:
         """Initializes the Chromosome object
 
         :param genes: What is wanted to optimize
-        :type genes: Any, optional
+        :type genes: Genes, optional
         :param fitness: Value which describes how much the genes fits what is wanted. It can be of any type since it
             can be compared with > and < and can be printed
-        :type fitness: Any, optional
+        :type fitness: Fitness, optional
         :param strategy: Container which stores the functions used to obtain the current Chromosome, defaults to []
         :type strategy: list[Callable[[Chromosome], Genes]], optional
         :param age: How many times the candidate was modificated without having any improvement, defaults to 0
@@ -97,7 +97,7 @@ class Mutate:
         self.rate = methods_rate
         self.genetic = None
 
-    def __call__(self, parent: Chromosome, donor: Any = None) -> Chromosome:
+    def __call__(self, parent: Chromosome, donor: Chromosome = None) -> Chromosome:
         """Makes the Mutate object a callable one that receives a Chromosome and returns a new Chromosome. It only deals
         with the parameter parent. All the remaining parameters can receive absolutely anything without changing the 
         result. It randomly choices one of the methods and returns the result of passing parent  to it. The random 

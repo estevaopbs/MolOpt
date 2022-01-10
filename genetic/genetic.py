@@ -293,8 +293,8 @@ class Genetic(ABC):
     def __init__(self, first_genes: Chromosome, strategies: Strategies, max_age: int | None, pool_size: int, 
         mutate_after_crossover: bool, crossover_elitism: list[numeric] | None, 
         elitism_rate: list[int] | None, freedom_rate: int, parallelism: bool, local_opt: bool, 
-        max_seconds: numeric | None, time_toler: numeric | None, gens_toler: int | None, 
-        max_gens: int | None, save_directory: str) -> Genetic:        
+        max_seconds: numeric | None, time_toler: numeric | None, gens_toler: int | None, max_gens: int | None,
+        save_directory: str) -> Genetic:        
         """Initializes the Genetic object by receiving its parameters
 
         :param first_genes: The genes of the first candidate in the genetic algorithm

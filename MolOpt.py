@@ -18,6 +18,8 @@ class MolOpt(Genetic):
     :param Genetic: Genetic algorithm abstract class
     :type Genetic: ABC
     """
+    __slots__ = ('energy_param', 'threads_per_calc')
+
     def __init__(self, first_molecule: Molecule, energy_param: str, strategies: Strategies, max_age: int | None, 
         pool_size: int, mutate_after_crossover: bool, crossover_elitism: list[numeric] | None, 
         elitism_rate: list[int] | None, freedom_rate: int, parallelism: bool, local_opt: bool,

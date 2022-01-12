@@ -496,12 +496,25 @@ class Genetic(ABC):
         :return: Child
         :rtype: Chromosome
         """
+
+
+        def remove_lineage(candidate: Chromosome) -> Chromosome:
+            """Removes the lineage of a candidate
+            :param candidate: Candidate which lineage will be removed
+            :type candidate: Chromosome
+            :return: Candidate with lineage changed to None
+            :rtype: Chromosome
+            """            
+            candidate.lineage = None
+            return candidate
+
+
         sorted_candidates = copy.copy(candidates)
         sorted_candidates.sort(reverse=True, key=lambda p: p.fitness)
         while True:
             try:
                 parent = Chromosome(copy.deepcopy(candidates[parent_index].genes))
-                lineage = copy.copy(candidates[parent_index].lineage)
+                lineage = list(map(remove_lineage, parent.lineage))
                 for _ in range(self.freedom_rate):
                     strategy = random.choices(self.strategies.strategies, self.strategies.rate)[0]
                     if isinstance(strategy, Crossover):
@@ -513,10 +526,11 @@ class Genetic(ABC):
                         donor = None
                     child = strategy(parent, donor)
                     if isinstance(strategy, Crossover):
-                        lineage += donor.lineage
+                        lineage += list(map(remove_lineage, copy.deepcopy(donor.lineage)))
                         if self.mutate_after_crossover:
                             child = self.mutate_methods(child)
                     parent = child
+                child.lineage = None
                 lineage += [child]
                 child.lineage = lineage
                 child.label = label

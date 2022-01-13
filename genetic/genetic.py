@@ -357,7 +357,7 @@ class Genetic(ABC):
         self.save_directory = save_directory
         self.start_time = None
         self.first_parent = Chromosome(genes=first_genes, fitness=None, strategy=[self.load], age=0, lineage=[],
-            label=None, genetic=self)
+            label=None)
         self.first_parent.fitness = self.get_fitness(self.first_parent)
         self.first_parent.lineage = [self.first_parent]
         self.lineage_ids = []
@@ -538,7 +538,7 @@ class Genetic(ABC):
             return candidate
         opt_candidate = Chromosome(genes=self.local_optimize(candidate), fitness=None,
             strategy=candidate.strategy + [self.local_optimize], age=0, lineage=candidate.lineage,
-            label=candidate.label, genetic=self)
+            label=candidate.label)
         opt_candidate.lineage += [opt_candidate]
         opt_candidate.fitness = self.get_fitness(opt_candidate)
         return opt_candidate

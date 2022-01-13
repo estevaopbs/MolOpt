@@ -486,7 +486,7 @@ class Genetic(ABC):
             :return: Candidate with lineage changed to None
             :rtype: Chromosome
             """            
-            candidate.lineage = None
+            candidate.lineage = []
             return candidate
 
 
@@ -511,7 +511,6 @@ class Genetic(ABC):
                         if self.mutate_after_crossover:
                             child = self.mutate_methods(child)
                     parent = child
-                child.lineage = None
                 lineage += [child]
                 child.lineage = lineage
                 child.label = label

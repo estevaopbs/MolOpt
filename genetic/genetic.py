@@ -24,10 +24,10 @@ Fitness: TypeAlias = 'Fitness'
 class Chromosome:
     """Object that represents the candidates.
     """
-    __slots__ = ('genes', 'fitness', 'strategy', 'age', 'lineage', 'label', 'genetic')
+    __slots__ = ('genes', 'fitness', 'strategy', 'age', 'lineage', 'label')
     
     def __init__(self, genes: Genes = None, fitness: Fitness = None, strategy: list[Callable[[Chromosome], Genes]] = [], 
-        age: int = 0, lineage: list = [], label: str = None, genetic: Genetic = None) -> Chromosome:
+        age: int = 0, lineage: list = [], label: str = None) -> Chromosome:
         """Initializes the Chromosome object
 
         :param genes: What is wanted to optimize
@@ -52,7 +52,6 @@ class Chromosome:
         self.age = age
         self.lineage = lineage
         self.label = label
-        self.genetic = genetic
 
     @property
     def strategy_str(self) -> str:
@@ -62,10 +61,6 @@ class Chromosome:
         :rtype: str
         """
         return str([strategy.__name__ for strategy in self.strategy]).replace("'", "")
-
-    def get_fitness(self) -> Fitness:
-        self.fitness = self.genetic.get_fitness(self)
-        return self.fitness
 
     def copy(self):
         return copy.deepcopy(self)
@@ -79,7 +74,7 @@ class Mutate:
     :return: Mutated Chromosome
     :rtype: Chromosome
     """
-    __slots__ = ('methods', 'rate', 'genetic')
+    __slots__ = ('methods', 'rate')
     
     def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> Mutate:
         """Initializes the Mutate object by receiving its parameters
@@ -95,7 +90,6 @@ class Mutate:
         """
         self.methods = methods
         self.rate = methods_rate
-        self.genetic = None
 
     def __call__(self, parent: Chromosome, donor: Chromosome = None) -> Chromosome:
         """Makes the Mutate object a callable one that receives a Chromosome and returns a new Chromosome. It only deals
@@ -109,8 +103,7 @@ class Mutate:
         :rtype: Chromosome
         """
         method = random.choices(self.methods, self.rate)[0]
-        child = Chromosome(genes=method(parent), fitness=None, strategy=parent.strategy + [method], age=0, lineage=[],
-            genetic=self.genetic)
+        child = Chromosome(genes=method(parent), fitness=None, strategy=parent.strategy + [method], age=0, lineage=[])
         return child
 
 
@@ -122,7 +115,7 @@ class Crossover:
     :return: Child Chromosome
     :rtype: Chromosome
     """
-    __slots__ = ('methods', 'rate', 'genetic')
+    __slots__ = ('methods', 'rate')
 
     def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> Crossover:
         """Initializes the Crossover object by receiving its parameters
@@ -138,7 +131,6 @@ class Crossover:
         """
         self.methods = methods
         self.rate = methods_rate
-        self.genetic = None
 
     def __call__(self, parent: Chromosome, donor: Chromosome) -> Chromosome:
         """Makes the Crossover object a callable one that receives its parameters and returns a new Chromosome. The 
@@ -155,7 +147,7 @@ class Crossover:
         """
         method = random.choices(self.methods, self.rate)[0]
         child = Chromosome(genes=method(parent, donor), fitness=None, strategy=parent.strategy + [method], age=0,
-            lineage=[], genetic=self.genetic)
+            lineage=[])
         return child
 
 
@@ -169,7 +161,7 @@ class Create:
     :return: New Chromosome object with the created genes
     :rtype: Chromosome
     """
-    __slots__ = ('methods', 'rate', 'genetic')
+    __slots__ = ('methods', 'rate', 'first_parent')
 
     def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> Create:
         """Initializes the Crossover object by receiving its parameters
@@ -185,7 +177,7 @@ class Create:
         """
         self.methods = methods
         self.rate = methods_rate
-        self.genetic = None
+        self.first_parent = None
 
     def __call__(self, parent: Chromosome = None, donor: Chromosome = None) -> Chromosome:
         """Makes the Create method a callable one that receives the first_parent parameter and returning a new 
@@ -199,8 +191,7 @@ class Create:
         :rtype: Chromosome
         """
         method = random.choices(self.methods, self.rate)[0]
-        child = Chromosome(genes=method(self.genetic.first_parent), fitness=None, strategy=[method], age=0, lineage=[],
-            genetic=self.genetic)
+        child = Chromosome(genes=method(self.first_parent), fitness=None, strategy=[method], age=0, lineage=[])
         return child
 
 
@@ -229,22 +220,14 @@ class Strategies:
         self.rate = strategies_rate
 
     def __call__(self, parent: Chromosome, donor: Chromosome) -> Chromosome:
-        """Makes the Create method a callable one that receives its parameters and returns a new Chromosome. Randomly 
-        choices one of the methods and returns the result of passing the inputs to it. The random choice takes into 
-        consideration the strategies_rate of the current object
+        """Makes the Strategies method a callable one that receives its parameters and returns a new Chromosome. 
+        Randomly choices one of the strategies and returns the result of passing the inputs to it. The random choice
+        takes into consideration the strategies_rate of the current object
 
         :param parent: Parent Chromosome
         :type parent: Chromosome
         :param donor: Chromosome which genes are supposed to be combined with parent's genes in crossover strategy
         :type donor: Chromosome
-        :param mutate_after_crossover: When crossover is selected, if it's True, after the crossover operation the child
-            Chromosome will be passed to mutate_methods before being returned, if its False so it will be returned 
-            immediatly after crossover
-        :type mutate_after_crossover: bool
-        :param mutate_methods: Mutate object to which child Chromosome will be passed if mutate_after_crossover is True
-        :type mutate_methods: Mutate
-        :param first_parent: It's designed to receive the first candidate created
-        :type first_parent: Chromosome
         :return: New Chromosome object with the genes generated by the strategy randomly selected
         :rtype: Chromosome
         """
@@ -375,20 +358,18 @@ class Genetic(ABC):
         self.start_time = None
         self.first_parent = Chromosome(genes=first_genes, fitness=None, strategy=[self.load], age=0, lineage=[],
             label=None, genetic=self)
-        self.first_parent.get_fitness()
+        self.first_parent.fitness = self.get_fitness(self.first_parent)
         self.first_parent.lineage = [self.first_parent]
         self.lineage_ids = []
         self.best_candidate = None
         for strategy in self.strategies.strategies:
             if type(strategy) is Mutate:
                 self.mutate_methods = strategy
-                self.mutate_methods.genetic = self
             elif type(strategy) is Create:
                 self.create_methods = strategy
-                self.create_methods.genetic = self
+                self.create_methods.first_parent = self.first_parent
             elif type(strategy) is Crossover:
                 self.crossover_methods = strategy
-                self.crossover_methods.genetic = self
         if mutate_first in self.create_methods.methods:
             self.create_methods.methods[self.create_methods.methods.index(mutate_first)] = self.mutate_first
         if mutate_best in self.create_methods.methods:
@@ -526,7 +507,7 @@ class Genetic(ABC):
                         donor = None
                     child = strategy(parent, donor)
                     if isinstance(strategy, Crossover):
-                        lineage += list(map(remove_lineage, copy.deepcopy(donor.lineage)))
+                        lineage += list(map(remove_lineage, copy.copy(donor.lineage)))
                         if self.mutate_after_crossover:
                             child = self.mutate_methods(child)
                     parent = child
@@ -536,7 +517,7 @@ class Genetic(ABC):
                 child.label = label
                 child.lineage = list(set(child.lineage))
                 child.lineage = [ancestor for ancestor in child.lineage if ancestor.label not in self.lineage_ids]
-                child.get_fitness()
+                child.fitness = self.get_fitness(child)
                 break
             except:
                 self.catch(child)
@@ -559,7 +540,7 @@ class Genetic(ABC):
             strategy=candidate.strategy + [self.local_optimize], age=0, lineage=candidate.lineage,
             label=candidate.label, genetic=self)
         opt_candidate.lineage += [opt_candidate]
-        opt_candidate.get_fitness()
+        opt_candidate.fitness = self.get_fitness(opt_candidate)
         return opt_candidate
 
     def local_optimize(self, candidate: Chromosome) -> Genes:
@@ -592,7 +573,7 @@ class Genetic(ABC):
                 parent = self.create_methods(self.load())
                 parent.label = label
                 parent.lineage = [parent]
-                parent.get_fitness()
+                parent.fitness = self.get_fitness(parent)
                 break
             except:
                 self.catch(parent)

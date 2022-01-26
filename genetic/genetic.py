@@ -356,6 +356,9 @@ class Genetic(ABC):
         self.max_gens = max_gens
         self.save_directory = f"{datetime.now().strftime('%Y_%m_%d_%H:%M')}" if save_directory is None \
             else save_directory
+        os.mkdir(self.save_directory)
+        os.mkdir(f'{self.save_directory}/lineage')
+        os.mkdir(f'{self.save_directory}/improvements')
         self.start_time = None
         self.first_parent = Chromosome(genes=first_genes, fitness=None, strategy=[self.load], age=0, lineage=[],
             label=None)
@@ -605,9 +608,6 @@ class Genetic(ABC):
         :return: Best candidate
         :rtype: Chromosome
         """
-        os.mkdir(self.save_directory)
-        os.mkdir(f'{self.save_directory}/lineage')
-        os.mkdir(f'{self.save_directory}/improvements')
         self.start_time = time.time()
         opt_func = self.__get_improvement_mp if self.parallelism else self.__get_improvement
         n = 0

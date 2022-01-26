@@ -336,7 +336,7 @@ class Genetic(ABC):
             case this limit wouldn't exist. It only works when parallelism is True, otherwise it doesn't affect anything
         :type max_gens: int | None
         :param save_directory: The directory address relative to __main__ where the outputs will be saved. If it's None
-            than it will receive the instant of time the running started
+            than it will receive the instant of time the object was created
         :type save_directory: str
         :return: Genetic object
         :rtype: Genetic
@@ -354,7 +354,8 @@ class Genetic(ABC):
         self.time_toler = time_toler
         self.gens_toler = gens_toler
         self.max_gens = max_gens
-        self.save_directory = save_directory
+        self.save_directory = f"{datetime.now().strftime('%Y_%m_%d_%H:%M')}" if save_directory is None \
+            else save_directory
         self.start_time = None
         self.first_parent = Chromosome(genes=first_genes, fitness=None, strategy=[self.load], age=0, lineage=[],
             label=None)
@@ -604,8 +605,6 @@ class Genetic(ABC):
         :return: Best candidate
         :rtype: Chromosome
         """
-        self.save_directory = f"{datetime.now().strftime('%Y_%m_%d_%H:%M')}" if self.save_directory is None \
-            else self.save_directory
         os.mkdir(self.save_directory)
         os.mkdir(f'{self.save_directory}/lineage')
         os.mkdir(f'{self.save_directory}/improvements')

@@ -16,16 +16,13 @@ matplotlib.rcParams['figure.max_open_warning'] = 24
 class Data:
     """Reads the data from the genetic output folder and produces graphs using matplotlib
     """
-    def __init__(self, data_dir: str, save_dir: str = 'graphs') -> Data:
+    def __init__(self, data_dir: str) -> Data:
         """Initiates the object by receiving the directory created by the Genetic object
 
         :param data_dir: Directory created by the Genetic object which contains all saved data
         :type data_dir: str
-        :param save_dir: Directory in which the graphs will be saved, defaults to None
-        :type save_dir: str
         """
         self.data_dir = data_dir
-        self.save_dir = save_dir
         with open(f'{data_dir}/time_gen.log', 'r') as file:
             self.generations = [[float(n) for n in row] for row in [item.split('\t')\
                 for item in file.read().splitlines()]]
@@ -55,7 +52,7 @@ class Data:
         return y_value
 
     def plot(self, *args: Tuple[str, str], format: str, fit_str: str = 'Fitness', mean_fit_str: str = 'Medium fitness',
-        time_str: str = 'Time', gen_str: str = 'Generation') -> None:
+        time_str: str = 'Time', gen_str: str = 'Generation', gen_range: Tuple(int, int) = (0, -1), save_dir: str) -> None:
         """Produces the plots by receiving Tuples of with a the string correspondent to the paramter x and another
         correspondent to the parameter y. The x parameter strings can be: time; generation; n. The y parameter strings
         can be: best; mean; lineage; lineage_mean; improvement; lineage_best; improvements_strategies;
@@ -74,15 +71,24 @@ class Data:
         :type time_str: str
         :param gen_str: String which will label the generation axes, defaults to 'Generation'
         :type gen_str: str
+        :param gen_range: Generation's the graphs will show, defaults to (0, -1)
+        :type gen_range: Tuple(int, int)
+        :param save_dir: Directory in which the graphs will be saved, defaults to None
+        :type save_dir: str
         :raises Exception: Raises an exception if paramter x is not valid
         :raises Exception: Raises an exception if paramter y is not valid
         """
         xparams_args = ('time', 'generation', 'n')
         yparams_args = ('best', 'mean', 'lineage', 'lineage_mean', 'improvement', 'lineage_best',
             'improvements_strategies', 'lineage_strategies')
-        os.mkdir(self.save_dir)
+        os.mkdir(save_dir)
         if args == ('all',):
             args = product(xparams_args, yparams_args)
+        if gen_range[1] == -1:
+            gen_range = (gen_range[0], len(self.generations) - 1)
+        time_range = (self.generations[gen_range[0]][0], self.generations[gen_range[1]][0])
+        if gen_range[0] == 0:
+            time_range = (float(self.improvements[0][2]), time_range[1])
         for arg in args:
             xparam, yparam = arg
             if not yparam in yparams_args:
@@ -91,27 +97,34 @@ class Data:
                 raise Exception(f'{xparam} is not valid')
             fig, ax = plt.subplots()
             if yparam == 'best':
-                ydata = [self.ymod(gen[1]) for gen in self.generations]
+                ydata = [self.ymod(gen[1]) for gen in self.generations if\
+                    (gen_range[0] <= self.generations.index(gen) <= gen_range[1])]
             elif yparam == 'mean':
-                ydata = [self.ymod(mean(gen[1:])) for gen in self.generations]
+                ydata = [self.ymod(mean(gen[1:])) for gen in self.generations if\
+                    (gen_range[0] <= self.generations.index(gen) <= gen_range[1])]
             elif yparam == 'improvement':
-                ydata = [self.ymod(i[1]) for i in self.improvements]
+                ydata = [self.ymod(i[1]) for i in self.improvements if\
+                    (time_range[0] <= i[2] <= time_range[1])]
                 if xparam == 'time':
-                    xdata = [i[2] for i in self.improvements]
+                    xdata = [i[2] for i in self.improvements if\
+                        (time_range[0] <= i[2] <= time_range[1])]
                 elif xparam == 'generation':
-                    xdata = [i.split('_')[1] for i in self.improvements_files]
+                    xdata = [i.split('_')[1] for i in self.improvements_files if\
+                        (gen_range[0] <= int(i.split('_')[1]) <= gen_range[1])]
                 elif xparam == 'n':
                     pass
                 else:
                     raise Exception(f'{xparam} is not valid')
             elif yparam == 'lineage':
                 ydata = [self.ymod(self.generations[int(ancestor_label.split('_')[1])]\
-                    [int(ancestor_label.split('_')[2]) + 1]) for ancestor_label in self.lineage_files]
+                    [int(ancestor_label.split('_')[2]) + 1]) for ancestor_label in self.lineage_files if\
+                        (gen_range[0] <= int(ancestor_label.split('_')[1]) <= gen_range[1])]
                 if xparam == 'time':
-                    xdata = [self.generations[int(ancestor_label.split('_')[1])][0]\
-                        for ancestor_label in self.lineage_files]
+                    xdata = [self.generations[int(ancestor_label.split('_')[1])][0] for ancestor_label in\
+                        self.lineage_files if (gen_range[0] <= int(ancestor_label.split('_')[1]) <= gen_range[1])]
                 elif xparam == 'generation':
-                    xdata = [int(ancestor_label.split('_')[1]) for ancestor_label in self.lineage_files]
+                    xdata = [int(ancestor_label.split('_')[1]) for ancestor_label in self.lineage_files if\
+                        (gen_range[0] <= int(ancestor_label.split('_')[1]) <= gen_range[1])]
                 elif xparam == 'n':
                     pass
                 else:
@@ -121,11 +134,11 @@ class Data:
                 ydatagens.sort()
                 ydata = [mean([self.ymod(self.generations[n][int(ancestor_label.split('_')[2]) + 1])\
                     for ancestor_label in self.lineage_files if int(ancestor_label.split('_')[1]) == n])\
-                        for n in ydatagens]
+                        for n in ydatagens if (gen_range[0] <= n <= gen_range[1])]
                 if xparam == 'time':
-                    xdata = [self.generations[n][0] for n in ydatagens]
+                    xdata = [self.generations[n][0] for n in ydatagens if (gen_range[0] <= n <= gen_range[1])]
                 elif xparam == 'generation':
-                    xdata = ydatagens
+                    xdata = [n for n in ydatagens if (gen_range[0] <= n <= gen_range[1])]
                 elif xparam == 'n':
                     pass
                 else:
@@ -135,64 +148,87 @@ class Data:
                 ydatagens.sort()
                 ydata = [self.ymod(max([self.generations[n][int(ancestor_label.split('_')[2]) + 1]\
                     for ancestor_label in self.lineage_files if int(ancestor_label.split('_')[1]) == n]))\
-                        for n in ydatagens]
+                        for n in ydatagens if (gen_range[0] <= n <= gen_range[1])]
                 if xparam == 'time':
-                    xdata = [self.generations[n][0] for n in ydatagens]
+                    xdata = [self.generations[n][0] for n in ydatagens if (gen_range[0] <= n <= gen_range[1])]
                 elif xparam == 'generation':
-                    xdata = ydatagens
+                    xdata = [n for n in ydatagens if (gen_range[0] <= n <= gen_range[1])]
                 elif xparam == 'n':
                     pass
                 else:
                     raise Exception(f'{xparam} is not valid')
             elif yparam == 'lineage_strategies':
                 strategies_data = dict()
-                for n, ancestor in enumerate(self.lineage_files):
+                lineage_data_files = [ancestor for ancestor in self.lineage_files if\
+                    (gen_range[0] <= int(ancestor.split('_')[1]) <= gen_range[1])]
+                previous_ancestors = [self.lineage[n] for n in [int(_file.split('_')[0]) for _file in \
+                    [ancestor for ancestor in self.lineage_files if (gen_range[0]> int(ancestor.split('_')[1]))]]]
+                for n, ancestor in enumerate(lineage_data_files):
                     ancestor_strategies = self.lineage[int(ancestor.split('_')[0])][0]
                     for strategy in set(ancestor_strategies):
                         if strategy in strategies_data.keys():
                             strategies_data[strategy].append(strategies_data[strategy][-1] +\
                                 ancestor_strategies.count(strategy))
                         else:
-                            strategies_data.update({strategy: [0 for _ in range(n)] +\
-                                [ancestor_strategies.count(strategy)]})
+                            if gen_range[0] == 0:
+                                strategies_data.update({strategy: [0 for _ in range(n)] +\
+                                    [ancestor_strategies.count(strategy)]})
+                            else:
+                                previous_strategy_count = sum([ancestor[0].count(strategy) for ancestor in\
+                                    previous_ancestors])
+                                strategies_data.update({strategy: [previous_strategy_count for _ in range(n)] +\
+                                    [ancestor_strategies.count(strategy)  + previous_strategy_count]})
                     for strategy in strategies_data.keys():
                         if not strategy in ancestor_strategies:
                             strategies_data[strategy].append(strategies_data[strategy][-1])
                 if xparam == 'time':
-                    xdata = [self.generations[int(ancestor.split('_')[1])][0] for ancestor in self.lineage_files]
+                    xdata = [self.generations[int(ancestor.split('_')[1])][0] for ancestor in lineage_data_files]
                 elif xparam == 'generation':
-                    xdata = [int(ancestor_label.split('_')[1]) for ancestor_label in self.lineage_files]
+                    xdata = [int(ancestor_label.split('_')[1]) for ancestor_label in lineage_data_files]
                 elif xparam == 'n':
                     pass
                 else:
                     raise Exception(f'{xparam} is not valid')
             elif yparam == 'improvements_strategies':
                 strategies_data = dict()
-                for n, improvement in enumerate(self.improvements):
+                improvements_data = [improvement for improvement in self.improvements if\
+                    (time_range[0] <= improvement[2] <= time_range[1])]
+                previous_ancestors = [self.lineage[n] for n in [int(_file.split('_')[0]) for _file in \
+                    [ancestor for ancestor in self.lineage_files if (gen_range[0]> int(ancestor.split('_')[1]))]]]
+                for n, improvement in enumerate(improvements_data):
                     for strategy in set(improvement[0]):
                         if strategy in strategies_data.keys():
                             strategies_data[strategy].append(strategies_data[strategy][-1] +\
                                 improvement[0].count(strategy))
                         else:
-                            strategies_data.update({strategy: [0 for _ in range(n)] + [improvement[0].count(strategy)]})
+                            if gen_range[0] == 0:
+                                strategies_data.update({strategy: [0 for _ in range(n)] +\
+                                    [improvement[0].count(strategy)]})
+                            else:
+                                previous_strategy_count = sum([ancestor[0].count(strategy) for ancestor in\
+                                    previous_ancestors])
+                                strategies_data.update({strategy: [previous_strategy_count for _ in range(n)] +\
+                                    [improvement[0].count(strategy) + previous_strategy_count]})
                     for strategy in strategies_data.keys():
                         if not strategy in improvement[0]:
                             strategies_data[strategy].append(strategies_data[strategy][-1])
                 if xparam == 'time':
-                    xdata = [improvement[2] for improvement in self.improvements]
+                    xdata = [improvement[2] for improvement in improvements_data]
                 elif xparam == 'generation':
-                    xdata = [int(i.split('_')[1]) for i in self.improvements_files]
+                    xdata = [int(i.split('_')[1]) for i in self.improvements_files if\
+                        (gen_range[0] <= int(i.split('_')[1]) <= gen_range[1])]
                 elif xparam == 'n':
-                    xdata = list(range(len(self.improvements)))
+                    xdata = list(range(len(improvements_data)))
                 else:
                     raise Exception(f'{xparam} is not valid')
             else:
                 raise Exception(f'{yparam} is not valid')
             if yparam == 'best' or yparam == 'mean':
                 if xparam == 'time':
-                    xdata = [gen[0] for gen in self.generations]
+                    xdata = [gen[0] for gen in self.generations if\
+                        (gen_range[0] <= self.generations.index(gen) <= gen_range[1])]
                 elif xparam == 'generation':
-                    xdata = range(len(self.generations))
+                    xdata = [n for n, gen in enumerate(self.generations) if (gen_range[0] <= n <= gen_range[1])]
                 elif xparam == 'n':
                     pass
                 else:
@@ -208,9 +244,9 @@ class Data:
                     ax.plot(xdata, strategies_data[strategy], drawstyle='steps', label=strategy)
                 plt.legend()
                 if format == 'tex':
-                    tikzplotlib.save(f'{self.save_dir}/{xparam}_{yparam}.tex')
+                    tikzplotlib.save(f'{save_dir}/{xparam}_{yparam}.tex')
                 else:
-                    plt.savefig(f'{self.save_dir}/{xparam}_{yparam}.{format}')
+                    plt.savefig(f'{save_dir}/{xparam}_{yparam}.{format}', bbox_inches='tight')
                 print(f'{self.data_dir} data x={xparam} y={yparam} plotted with success')
             elif not 'strategies' in yparam:
                 if 'mean' in yparam:
@@ -226,7 +262,7 @@ class Data:
                     plt.xlabel(r'$N$')
                 ax.plot(xdata, ydata, drawstyle='steps')
                 if format == 'tex':
-                    tikzplotlib.save(f'{self.save_dir}/{xparam}_{yparam}.tex')
+                    tikzplotlib.save(f'{save_dir}/{xparam}_{yparam}.tex')
                 else:
-                    plt.savefig(f'{self.save_dir}/{xparam}_{yparam}.{format}')
+                    plt.savefig(f'{save_dir}/{xparam}_{yparam}.{format}', bbox_inches='tight')
                 print(f'{self.data_dir} data x={xparam} y={yparam} plotted with success')

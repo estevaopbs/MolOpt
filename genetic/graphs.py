@@ -16,7 +16,7 @@ matplotlib.rcParams['figure.max_open_warning'] = 24
 class Data:
     """Reads the data from the genetic output folder and produces graphs using matplotlib
     """
-    def __init__(self, data_dir: str) -> Data:
+    def __init__(self, data_dir: str) -> None:
         """Initiates the object by receiving the directory created by the Genetic object
 
         :param data_dir: Directory created by the Genetic object which contains all saved data
@@ -51,13 +51,15 @@ class Data:
         """
         return y_value
 
-    def plot(self, *args: Tuple[str, str], format: str, fit_str: str = 'Fitness', mean_fit_str: str = 'Medium fitness',
-        time_str: str = 'Time', gen_str: str = 'Generation', gen_range: Tuple(int, int) = (0, -1),
-        save_dir: str) -> None:
-        """Produces the plots by receiving Tuples of with a the string correspondent to the paramter x and another
+    def plot(self, *args: Tuple[str, str] | str, format: str, fit_str: str = 'Fitness',
+        mean_fit_str: str = 'Medium fitness', time_str: str = 'Time', gen_str: str = 'Generation',
+        gen_range: Tuple(int, int) = (0, -1), save_dir: str) -> None:
+        """Produces the plots by receiving Tuples with a string correspondent to the paramter x and another
         correspondent to the parameter y. The x parameter strings can be: time; generation; n. The y parameter strings
         can be: best; mean; lineage; lineage_mean; improvement; lineage_best; improvements_strategies;
-        lineage_strategies
+        lineage_strategies. The n x parameter means the graph will just enumerate the y entries and n-graphs cant be
+        produced for strategies' y-axis. Instead of insert tuples with x and y parameters you can just insert the string
+        'all' and then all the possible graphs will  be produced.
 
         :param format: The format the graphs will be saved. It can be: tex; png; eps; jpeg; jpg; pdf; pgf; ps; raw; 
             rgba; svg; svgz; tif; tiff

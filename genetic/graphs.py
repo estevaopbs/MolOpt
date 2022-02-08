@@ -52,7 +52,8 @@ class Data:
         return y_value
 
     def plot(self, *args: Tuple[str, str], format: str, fit_str: str = 'Fitness', mean_fit_str: str = 'Medium fitness',
-        time_str: str = 'Time', gen_str: str = 'Generation', gen_range: Tuple(int, int) = (0, -1), save_dir: str) -> None:
+        time_str: str = 'Time', gen_str: str = 'Generation', gen_range: Tuple(int, int) = (0, -1),
+        save_dir: str) -> None:
         """Produces the plots by receiving Tuples of with a the string correspondent to the paramter x and another
         correspondent to the parameter y. The x parameter strings can be: time; generation; n. The y parameter strings
         can be: best; mean; lineage; lineage_mean; improvement; lineage_best; improvements_strategies;
@@ -258,6 +259,12 @@ class Data:
                 if xparam == 'generation':
                     plt.xlabel(f'{gen_str}')
                 if xparam == 'n':
+                    new_ydata = [ydata[0]]
+                    for n, item in enumerate(ydata[1:]):
+                        if ydata[n] == item:
+                            continue
+                        new_ydata.append(item)
+                    ydata = new_ydata
                     xdata = list(range(len(ydata)))
                     plt.xlabel(r'$N$')
                 ax.plot(xdata, ydata, drawstyle='steps')

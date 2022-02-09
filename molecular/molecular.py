@@ -96,7 +96,7 @@ class Molecule:
         """
         if len(self.geometry) <= 3:
             return []
-        elif len(self.geometry) == 3:
+        elif len(self.geometry) == 4:
             return [[3, 4]]
         return [[3,4]] + [[i, j] for i in range(4, len(self.geometry)) for j in [4, 6]]
 

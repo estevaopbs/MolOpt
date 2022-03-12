@@ -1,0 +1,1 @@
+from MolOpt.tests.tests import *

@@ -6,85 +6,96 @@ from numpy import mean
 from itertools import product
 import os
 from typing import Tuple
-matplotlib.rcParams['figure.max_open_warning'] = 24
+import shutil
+import json
 
 
 """Graphs production for genetic outputs
 """
 
 
-class Data:
-    """Reads the data from the genetic output folder and produces graphs using matplotlib
-    """
-    def __init__(self, data_dir: str) -> None:
-        """Initiates the object by receiving the directory created by the Genetic object
+matplotlib.rcParams['figure.max_open_warning'] = 24
 
-        :param data_dir: Directory created by the Genetic object which contains all saved data
-        :type data_dir: str
+
+class Data:
+    """Read and plot graphs with the data saved by Genetic objects
+    """
+    __slots__ = ('data_dir', 'generations', 'improvements', 'lineage', 'improvements_files', 'lineage_files')
+
+    def __init__(self, data_dir: str) -> None:
+        """Initiates the Data object
+
+        Parameters
+        ----------
+        data_dir : str
+            Directory created by the Genetic object which contains all saved data
         """
         self.data_dir = data_dir
         with open(f'{data_dir}/time_gen.log', 'r') as file:
-            self.generations = [[float(n) for n in row] for row in [item.split('\t')\
+            self.generations = [[float(n) for n in line] for line in [item.split('\t')\
                 for item in file.read().splitlines()]]
         with open(f'{data_dir}/improvements_strategies.log', 'r') as file:
-            self.improvements = [[[sstr for sstr in row[0].replace('[', '').replace(']', '').split(', ')], 
-                float(row[1]), float(row[2])] for row in [item.split('\t') for item in file.read().splitlines()]]
+            self.improvements = [[[sstr for sstr in line[0].replace('[', '').replace(']', '').split(', ')], 
+                float(line[1]), float(line[2])] for line in [item.split('\t') for item in file.read().splitlines()]]
         with open(f'{data_dir}/lineage_strategies.log', 'r') as file:
-            self.lineage = [[[sstr for sstr in row[0].replace('[', '').replace(']', '').split(', ')], 
-                float(row[1]), float(row[2])] for row in [item.split('\t') for item in file.read().splitlines()]]
-        self.improvements_files = [item[:-4] for item in os.listdir(f'{data_dir}/improvements')]
+            self.lineage = [[[sstr for sstr in line[0].replace('[', '').replace(']', '').split(', ')], 
+                float(line[1]), float(line[2])] for line in [item.split('\t') for item in file.read().splitlines()]]
+        self.improvements_files = [item.split('.')[0]  for item in os.listdir(f'{data_dir}/improvements')]
         self.improvements_files.sort(key=lambda x: int(x.split('_')[0]))
-        self.lineage_files = [item[:-4] for item in os.listdir(f'{data_dir}/lineage')]
+        self.lineage_files = [item.split('.')[0] for item in os.listdir(f'{data_dir}/lineage')]
         self.lineage_files.sort(key=lambda x: int(x.split('_')[1]))
 
-    @staticmethod
-    def ymod(y_value: float) -> float:
-        """In case of the fitness used in genetic be actually a function of the wanted parameter, here you can do the
-        opposite way by overriding this method. This method receives all the fitness values and returns to the plot
-        function the value converted to the way it will appear in the graph. By default, it means, if this methods don't
-        be override the y axis in all the graphs (excluding the strategies ones) will correspond to the fitness
-
-        :param y_value: Fitness value
-        :type y_value: float
-        :return: Converted value
-        :rtype: float
-        """
-        return y_value
-
-    def plot(self, *args: Tuple[str, str] | str, format: str, fit_str: str = 'Fitness',
+    def plot(self, *args: Tuple[str, str] | str, format: str, savedir: str, fit_str: str = 'Fitness',
         mean_fit_str: str = 'Medium fitness', time_str: str = 'Time', gen_str: str = 'Generation',
-        gen_range: Tuple(int, int) = (0, -1), save_dir: str) -> None:
-        """Produces the plots by receiving Tuples with a string correspondent to the paramter x and another
-        correspondent to the parameter y. The x parameter strings can be: time; generation; n. The y parameter strings
-        can be: best; mean; lineage; lineage_mean; improvement; lineage_best; improvements_strategies;
-        lineage_strategies. The n x parameter means the graph will just enumerate the y entries and n-graphs cant be
-        produced for strategies' y-axis. Instead of insert tuples with x and y parameters you can just insert the string
-        'all' and then all the possible graphs will  be produced.
+        gen_range: Tuple(int, int) = (0, -1), strategies_dict: dict = dict(), 
+        strtgs_fit_str: str = 'Fitness increasement',ymod: function = lambda x: x) -> None:
+        """Produces the graphs
 
-        :param format: The format the graphs will be saved. It can be: tex; png; eps; jpeg; jpg; pdf; pgf; ps; raw; 
-            rgba; svg; svgz; tif; tiff
-        :type format: str, optional
-        :param fit_str: String that will describe the y axis in the graphs (excluding the strategies ones, and the mean
-            ones), defaults to 'Fitness'
-        :type fit_str: str, optional
-        :param mean_fit_str: String that will describe the y axis in the graphs of mean values, defaults to
-            'Medium fitness'
-        :type mean_fit_str: str, optional
-        :param time_str: String which will label the time axes, defaults to 'Time'
-        :type time_str: str
-        :param gen_str: String which will label the generation axes, defaults to 'Generation'
-        :type gen_str: str
-        :param gen_range: Generation's the graphs will show, defaults to (0, -1)
-        :type gen_range: Tuple(int, int)
-        :param save_dir: Directory in which the graphs will be saved, defaults to None
-        :type save_dir: str
-        :raises Exception: Raises an exception if paramter x is not valid
-        :raises Exception: Raises an exception if paramter y is not valid
+        Parameters
+        ----------
+        *args : Tuple[str, str] | str
+            Tuples of strings correspondents to x and y parameters respectively, if it's all then all the possible
+            graphs will be plotted. The possible x parameter strings are time, generation, n, and the possibe y
+            parameter strings are best, mean, lineage, lineage_mean, improvement, lineage_best, improvements_strategies,
+            lineage_strategies
+        format : str
+            The format the graphs will be saved. It can be tex, png, eps, jpeg, jpg, pdf, pgf, ps, raw, rgba, svg, svgz,
+            tif, tiff
+        savedir : str
+            Directory in which the graphs will be saved
+        fit_str : str, optional
+            String that will describe the y axis in the graphs (excluding the strategies ones, and the mean ones), by
+            default 'Fitness'
+        mean_fit_str : str, optional
+            String that will describe the y axis in the graphs of mean values, by default 'Medium fitness'
+        time_str : str, optional
+            String which will label the time axes, by default 'Time'
+        gen_str : str, optional
+            String which will label the generation axes, by default 'Generation'
+        gen_range : Tuple, optional
+            Generation range that will be plotted in the graphs, by default (0, -1)
+        strategies_dict : dict, optional
+            Dictionary with the strings that will override the names of the strategies functions in the strategies
+            graphs, by default dict()
+        ymod : function, optional
+            Function which will modify each fitness value befor it is plotted in the graphs, by default lambda x: x
+
+        Raises
+        ------
+        Exception
+            Parameter x is not valid
+        Exception
+            Parameter y is not valid
         """
         xparams_args = ('time', 'generation', 'n')
         yparams_args = ('best', 'mean', 'lineage', 'lineage_mean', 'improvement', 'lineage_best',
-            'improvements_strategies', 'lineage_strategies')
-        os.mkdir(save_dir)
+            'improvements_strategies', 'lineage_strategies', 'strategies_fitness')
+        savedir = savedir.rstrip('/')
+        if savedir != '' and type(savedir) == str:
+            savedir += '/'
+        os.mkdir(savedir)
+        with open(f'{self.data_dir}/config.json', 'r') as file:
+            config = json.loads(file.read())
         if args == ('all',):
             args = product(xparams_args, yparams_args)
         if gen_range[1] == -1:
@@ -100,26 +111,26 @@ class Data:
                 raise Exception(f'{xparam} is not valid')
             fig, ax = plt.subplots()
             if yparam == 'best':
-                ydata = [self.ymod(gen[1]) for gen in self.generations if\
+                ydata = [ymod(gen[1]) for gen in self.generations if\
                     (gen_range[0] <= self.generations.index(gen) <= gen_range[1])]
             elif yparam == 'mean':
-                ydata = [self.ymod(mean(gen[1:])) for gen in self.generations if\
+                ydata = [ymod(mean(gen[1:])) for gen in self.generations if\
                     (gen_range[0] <= self.generations.index(gen) <= gen_range[1])]
             elif yparam == 'improvement':
-                ydata = [self.ymod(i[1]) for i in self.improvements if\
+                ydata = [ymod(i[1]) for i in self.improvements if\
                     (time_range[0] <= i[2] <= time_range[1])]
                 if xparam == 'time':
                     xdata = [i[2] for i in self.improvements if\
                         (time_range[0] <= i[2] <= time_range[1])]
                 elif xparam == 'generation':
-                    xdata = [i.split('_')[1] for i in self.improvements_files if\
+                    xdata = [int(i.split('_')[1]) for i in self.improvements_files if\
                         (gen_range[0] <= int(i.split('_')[1]) <= gen_range[1])]
                 elif xparam == 'n':
                     pass
                 else:
                     raise Exception(f'{xparam} is not valid')
             elif yparam == 'lineage':
-                ydata = [self.ymod(self.generations[int(ancestor_label.split('_')[1])]\
+                ydata = [ymod(self.generations[int(ancestor_label.split('_')[1])]\
                     [int(ancestor_label.split('_')[2]) + 1]) for ancestor_label in self.lineage_files if\
                         (gen_range[0] <= int(ancestor_label.split('_')[1]) <= gen_range[1])]
                 if xparam == 'time':
@@ -135,7 +146,7 @@ class Data:
             elif yparam == 'lineage_mean':
                 ydatagens = list({int(ancestor_label.split('_')[1]) for ancestor_label in self.lineage_files})
                 ydatagens.sort()
-                ydata = [mean([self.ymod(self.generations[n][int(ancestor_label.split('_')[2]) + 1])\
+                ydata = [mean([ymod(self.generations[n][int(ancestor_label.split('_')[2]) + 1])\
                     for ancestor_label in self.lineage_files if int(ancestor_label.split('_')[1]) == n])\
                         for n in ydatagens if (gen_range[0] <= n <= gen_range[1])]
                 if xparam == 'time':
@@ -149,7 +160,7 @@ class Data:
             elif yparam == 'lineage_best':
                 ydatagens = list({int(ancestor_label.split('_')[1]) for ancestor_label in self.lineage_files})
                 ydatagens.sort()
-                ydata = [self.ymod(max([self.generations[n][int(ancestor_label.split('_')[2]) + 1]\
+                ydata = [ymod(max([self.generations[n][int(ancestor_label.split('_')[2]) + 1]\
                     for ancestor_label in self.lineage_files if int(ancestor_label.split('_')[1]) == n]))\
                         for n in ydatagens if (gen_range[0] <= n <= gen_range[1])]
                 if xparam == 'time':
@@ -196,8 +207,9 @@ class Data:
                 strategies_data = dict()
                 improvements_data = [improvement for improvement in self.improvements if\
                     (time_range[0] <= improvement[2] <= time_range[1])]
-                previous_ancestors = [self.lineage[n] for n in [int(_file.split('_')[0]) for _file in \
-                    [ancestor for ancestor in self.lineage_files if (gen_range[0]> int(ancestor.split('_')[1]))]]]
+                previous_improvements = [self.improvements[n] for n in [int(_file.split('_')[0]) for _file in \
+                    [improvement for improvement in self.improvements_files if\
+                        (gen_range[0] > int(improvement.split('_')[1]))]]]
                 for n, improvement in enumerate(improvements_data):
                     for strategy in set(improvement[0]):
                         if strategy in strategies_data.keys():
@@ -209,11 +221,68 @@ class Data:
                                     [improvement[0].count(strategy)]})
                             else:
                                 previous_strategy_count = sum([ancestor[0].count(strategy) for ancestor in\
-                                    previous_ancestors])
+                                    previous_improvements])
                                 strategies_data.update({strategy: [previous_strategy_count for _ in range(n)] +\
                                     [improvement[0].count(strategy) + previous_strategy_count]})
                     for strategy in strategies_data.keys():
                         if not strategy in improvement[0]:
+                            strategies_data[strategy].append(strategies_data[strategy][-1])
+                if xparam == 'time':
+                    xdata = [improvement[2] for improvement in improvements_data]
+                elif xparam == 'generation':
+                    xdata = [int(i.split('_')[1]) for i in self.improvements_files if\
+                        (gen_range[0] <= int(i.split('_')[1]) <= gen_range[1])]
+                elif xparam == 'n':
+                    xdata = list(range(len(improvements_data)))
+                else:
+                    raise Exception(f'{xparam} is not valid')
+            elif yparam == 'strategies_fitness':
+                strategies_data = dict()
+                strategies_data.update({method: [] for method in config['strategies']['strategies']['Create']\
+                    ['methods']})
+                strategies_data.update({method: [] for method in config['strategies']['strategies']['Mutate']\
+                    ['methods']})
+                strategies_data.update({method: [] for method in config['strategies']['strategies']['Crossover']\
+                    ['methods']})
+                improvements_data = [improvement for improvement in self.improvements if\
+                    (time_range[0] <= improvement[2] <= time_range[1])]
+                previous_improvements = [self.improvements[n] for n in [int(_file.split('_')[0]) for _file in \
+                    [improvement for improvement in self.improvements_files if\
+                        (gen_range[0] > int(ancestor.split('_')[1]))]]]
+                previous_strategy_data = dict()
+                previous_strategy_data.update({method: [] for method in config['strategies']['strategies']['Create']\
+                    ['methods']})
+                previous_strategy_data.update({method: [] for method in config['strategies']['strategies']['Mutate']\
+                    ['methods']})
+                previous_strategy_data.update({method: [] for method in config['strategies']['strategies']['Crossover']\
+                    ['methods']})
+                if gen_range[0] > 0:
+                    previous_strategy_data[self.improvements[0][0][0]].append(self.improvements[0][1] -\
+                        config['first_candidate_fitness'])
+                    for method in strategies_data:
+                        if method != self.improvements[0][0][0]:
+                            previous_strategy_data[method].append(0)
+                    for n, improvement in enumerate(previous_improvements[1:]):
+                        for strategy in set(improvement[0]):
+                            previous_strategy_data[strategy] += (improvement[0].count(strategy)/len(improvement[0])) *\
+                                (improvement[1] - self.improvements[n][1])
+                elif gen_range[0] == 0:
+                    strategies_data[self.improvements[0][0][0]].append(self.improvements[0][1] -\
+                        config['first_candidate_fitness'])
+                    for method in strategies_data:
+                        if method != self.improvements[0][0][0]:
+                            strategies_data[method].append(0)
+                for n, improvement in enumerate(self.improvements[1:]):
+                    if improvement[1] > time_range[1]:
+                        break
+                    for strategy in set(improvement[0]):
+                        strategies_data[strategy].append((improvement[1] - self.improvements[n + gen_range[0]][1]) *\
+                            (improvement[0].count(strategy)/len(improvement[0])) + strategies_data[strategy][-1])
+                    for strategy in strategies_data:
+                        if not strategy in improvement[0]:
+                            if len(strategies_data[strategy]) == 0:
+                                strategies_data[strategy].append(previous_strategy_data[strategy])
+                                continue
                             strategies_data[strategy].append(strategies_data[strategy][-1])
                 if xparam == 'time':
                     xdata = [improvement[2] for improvement in improvements_data]
@@ -237,19 +306,32 @@ class Data:
                 else:
                     raise Exception(f'{xparam} is not valid')
             if 'strategies' in yparam and xparam != 'n':
+                for n, strategy in enumerate(config['strategies']['strategies']):
+                    if config['strategies']['rate'][n] == 0:
+                        for method in config['strategies']['strategies'][strategy]['methods']:
+                            if method in strategies_data:
+                                strategies_data.pop(method)
+                        continue
+                    for n, method in enumerate(config['strategies']['strategies'][strategy]['methods']):
+                        if config['strategies']['strategies'][strategy]['rate'][n] == 0:
+                            if method in strategies_data:
+                                strategies_data.pop(method)
+                if 'fitness' in yparam:
+                    plt.ylabel(strtgs_fit_str)
                 if xparam == 'time':
                     plt.xlabel(rf'{time_str} ($s$)')
                 elif xparam == 'generation':
                     plt.xlabel(f'{gen_str}')
                 else:
                     raise Exception(f'{xparam} is not valid')
-                for strategy in strategies_data.keys():
-                    ax.plot(xdata, strategies_data[strategy], drawstyle='steps', label=strategy)
+                for strategy in sorted(strategies_data.keys()):
+                    ax.plot(xdata, strategies_data[strategy], drawstyle='steps',
+                        label=strategy if not strategy in strategies_dict else strategies_dict[strategy])
                 plt.legend()
                 if format == 'tex':
-                    tikzplotlib.save(f'{save_dir}/{xparam}_{yparam}.tex')
+                    tikzplotlib.save(f'{savedir}/{xparam}_{yparam}.tex')
                 else:
-                    plt.savefig(f'{save_dir}/{xparam}_{yparam}.{format}', bbox_inches='tight')
+                    plt.savefig(f'{savedir}/{xparam}_{yparam}.{format}', bbox_inches='tight')
                 print(f'{self.data_dir} data x={xparam} y={yparam} plotted with success')
             elif not 'strategies' in yparam:
                 if 'mean' in yparam:
@@ -271,7 +353,65 @@ class Data:
                     plt.xlabel(r'$N$')
                 ax.plot(xdata, ydata, drawstyle='steps')
                 if format == 'tex':
-                    tikzplotlib.save(f'{save_dir}/{xparam}_{yparam}.tex')
+                    tikzplotlib.save(f'{savedir}{xparam}_{yparam}.tex')
                 else:
-                    plt.savefig(f'{save_dir}/{xparam}_{yparam}.{format}', bbox_inches='tight')
+                    plt.savefig(f'{savedir}{xparam}_{yparam}.{format}', bbox_inches='tight')
                 print(f'{self.data_dir} data x={xparam} y={yparam} plotted with success')
+
+
+def concatenate(*args: Data | str, savedir: str):
+    """Concatenate different data saved by Genetic objects in a single Data object
+
+    Parameters
+    ----------
+    *args : Data | str
+        Data objects or directory where de data was saved. The order it is input is the order it is concatenated
+    savedir : str
+        Directorey where the concatenated data will be saved
+    """
+    args = [Data(arg) if type(arg) == str else arg for arg in args]
+    files_extension = os.listdir(f'{args[0].data_dir}/improvements')[0].split('.')[1]
+    shutil.copytree(args[0].data_dir, savedir)
+    last_improvement = 0
+    last_lineage = 0
+    last_gen = 0
+    last_time_gen = 0
+    for n, _next in enumerate(args[1:]):
+        last = args[n]
+        last_improvement += len(last.improvements_files) - 1
+        last_lineage += len(last.lineage_files) - 1
+        last_gen += len(last.generations) - 1
+        last_time_gen += float(last.generations[-1][0])
+        next_improvements_files = _next.improvements_files[1:]
+        next_lineage_files = _next.lineage_files[1:]
+        for improvement in next_improvements_files:
+            new_filename = [int(x) for x in improvement.split('_')]
+            new_filename[0] += last_improvement
+            new_filename[1] += last_gen
+            new_filename = ('_').join([str(x) for x in new_filename])
+            shutil.copy(f'{_next.data_dir}/improvements/{improvement}.{files_extension}',
+                f'{savedir}/improvements/{new_filename}.{files_extension}')
+        for ancestor in next_lineage_files:
+            new_filename = [int(x) for x in ancestor.split('_')]
+            new_filename[0] += last_lineage
+            new_filename[1] += last_gen
+            new_filename = ('_').join([str(x) for x in new_filename])
+            shutil.copy(f'{_next.data_dir}/lineage/{ancestor}.{files_extension}',
+                f'{savedir}/lineage/{new_filename}.{files_extension}')
+        new_improvements = '\n'.join(['\t'.join([str(improvement[0]).replace("'", ''), str(improvement[1])] +\
+            [str(float(improvement[2]) + last_time_gen)])  for improvement in _next.improvements[1:]])
+        new_lineage =  '\n'.join(['\t'.join([str(ancestor[0]).replace("'", '') ,str(ancestor[1])] +\
+            [str(float(ancestor[2]) + last_time_gen)]) for ancestor in _next.lineage[1:]])
+        new_generations = '\n'.join(['\t'.join([str(int(gen[0]) + last_time_gen)] + [str(x) for x in gen[1:]]) for\
+            gen in _next.generations])
+        if not n == len(args) - 2:
+            new_improvements += '\n'
+            new_lineage += '\n'
+            new_generations += '\n'
+        with open(f'{savedir}/improvements_strategies.log', 'a') as new_file:
+            new_file.write(new_improvements)
+        with open(f'{savedir}/lineage_strategies.log', 'a') as new_file:
+            new_file.write(new_lineage)
+        with open(f'{savedir}/time_gen.log', 'a') as new_file:
+            new_file.write(new_generations)
+    return(Data(savedir))

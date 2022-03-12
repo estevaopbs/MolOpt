@@ -3,48 +3,49 @@ import time
 from bisect import bisect_left
 from math import exp
 import multiprocessing as mp
-from typing import Tuple, TypeAlias
+from typing import Any, Tuple, TypeAlias
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime
 import random
 import copy
 import os
+import inspect
+import json
 
 
 """Genetic algorithm engine
 """
 
 
-numeric = int | float
 Genes: TypeAlias = 'Genes'
 Fitness: TypeAlias = 'Fitness'
 
 
 class Chromosome:
-    """Object that represents the candidates.
+    """Class that represents the candidates
     """
     __slots__ = ('genes', 'fitness', 'strategy', 'age', 'lineage', 'label')
     
     def __init__(self, genes: Genes = None, fitness: Fitness = None, strategy: list[Callable[[Chromosome], Genes]] = [], 
-        age: int = 0, lineage: list = [], label: str = None) -> Chromosome:
+        age: int = 0, lineage: list = [], label: str = None) -> None:
         """Initializes the Chromosome object
 
-        :param genes: What is wanted to optimize
-        :type genes: Genes, optional
-        :param fitness: Value which describes how much the genes fits what is wanted. It can be of any type since it
-            can be compared with > and < and can be printed
-        :type fitness: Fitness, optional
-        :param strategy: Container which stores the functions used to obtain the current Chromosome, defaults to []
-        :type strategy: list[Callable[[Chromosome], Genes]], optional
-        :param age: How many times the candidate was modificated without having any improvement, defaults to 0
-        :type age: int, optional
-        :param lineage: The historic of Chromosomes used to find the current Chromosome, defaults to []
-        :type lineage: list[Chromosome], optional
-        :param label: A tag which can be used to identify the Chromosome object, defaults to None
-        :type label: str, optional
-        :return: Chromosome object
-        :rtype: Chromosome
+        Parameters
+        ----------
+        genes : Genes, optional
+            What is wanted to optimize, by default None
+        fitness : Fitness, optional
+            Value which describes how much the genes fits what is wanted. It can be of any type since it can be compared
+            with > and < and can be printed, by default None
+        strategy : list[Callable[[Chromosome], Genes]], optional
+            Container which stores the functions used to obtain the current Chromosome, by default []
+        age : int, optional
+            How many times the candidate was modificated without having any improvement, by default 0
+        lineage : list, optional
+            The historic of Chromosomes used to find the current Chromosome, by default []
+        label : str, optional
+            A tag which can be used to identify the Chromosome object, by default None
         """
         self.genes = genes
         self.fitness = fitness
@@ -57,8 +58,10 @@ class Chromosome:
     def strategy_str(self) -> str:
         """Returns a string which represents the list of the functions used to obtain the current Chromosome object
 
-        :return: String of a list of the names of the functions used to obtain the current Chromosome object
-        :rtype: str
+        Returns
+        -------
+        str
+            String of a list of the names of the functions used to obtain the current Chromosome object
         """
         return str([strategy.__name__ for strategy in self.strategy]).replace("'", "")
 
@@ -67,453 +70,446 @@ class Chromosome:
 
 
 class Mutate:
-    """A container for storing mutation functions and its rates. When it's called it receives a Chromosome and returns
-    a new Chromosome. This is supposed to receive functions which receives a Chromosome object and returns its genes 
-    with some random modification
-
-    :return: Mutated Chromosome
-    :rtype: Chromosome
+    """A container for storing mutation functions and its rates
     """
     __slots__ = ('methods', 'rate')
     
-    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> Mutate:
-        """Initializes the Mutate object by receiving its parameters
+    def __init__(self, methods: list[Callable[[Chromosome, dict], Genes]], methods_rate: list[float]) -> None:
+        """Initializes the Mutate object
 
-        :param methods: Functions which receives a Chromosome object and returns a new genes
-        :type methods: list[Callable[[Chromosome], Genes]]
-        :param methods_rate: The rate the functions tends be randomly chosen when the Mutate object is called. It must
-            to have the same lenght as methods. Suppose methods is [m1, m2, m3] and methods_rate is  [1, 2, 3]. m2 tends
-            to be chosen twice the m1 is and m3 thrice the m1 is
-        :type methods_rate: list[numeric]
-        :return: Mutate object
-        :rtype: Mutate
+        Parameters
+        ----------
+        methods : list[Callable[[Chromosome, dict], Genes]]
+            Functions which receives a Chromosome object and returns a new genes
+        methods_rate : list[float]
+            The rates the functions tends be randomly chosen when the Mutate object is called
         """
         self.methods = methods
         self.rate = methods_rate
 
-    def __call__(self, parent: Chromosome, donor: Chromosome = None) -> Chromosome:
-        """Makes the Mutate object a callable one that receives a Chromosome and returns a new Chromosome. It only deals
-        with the parameter parent. All the remaining parameters can receive absolutely anything without changing the 
-        result. It randomly choices one of the methods and returns the result of passing parent  to it. The random 
-        choice takes into consideration the methods_rate of the current object
+    def __call__(self, attributes: dict, parent: Chromosome, donor = None) -> Chromosome:
+        """Makes the Mutate object a callable one that receives the attributes dict and a Chromosome and returns a new
+        Chromosome
 
-        :param parent: Parent Chromosome which will be passed to mutation functions
-        :type parent: Chromosome
-        :return: New Chromosome
-        :rtype: Chromosome
+        Parameters
+        ----------
+        attributes : dict
+            Global parameters
+        parent : Chromosome
+            Parent chromosome
+
+        Returns
+        -------
+        Chromosome
+            Mutated chromosome
         """
         method = random.choices(self.methods, self.rate)[0]
-        child = Chromosome(genes=method(parent), fitness=None, strategy=parent.strategy + [method], age=0, lineage=[])
+        child = Chromosome(genes=method(parent.genes, attributes), fitness=None, strategy=parent.strategy + [method],
+            age=0, lineage=[])
         return child
 
 
 class Crossover:
-    """A container for storing crossover functions and its rates. When called it receives two Chromosome objects and 
-    returns a new Chromosome. This class is supposed to receive functions which receive two Chromosome objects and 
-    returns a random combination of their genes
-
-    :return: Child Chromosome
-    :rtype: Chromosome
+    """A container for storing crossover functions and its rates
     """
     __slots__ = ('methods', 'rate')
 
-    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> Crossover:
-        """Initializes the Crossover object by receiving its parameters
+    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[float]) -> None:
+        """Initializes the Crossover object
 
-        :param methods: Functions which receives two Chromosome objects and returns a new genes
-        :type methods: list[Callable[[Chromosome]
-        :param methods_rate: The rate the functions tends be randomly chosen when the Crossover object is called. It 
-            must to have the same lenght as methods. Suppose methods is [m1, m2, m3] and methods_rate is  [1, 2, 3]. m2 
-            tends to be chosen twice the m1 is and m3 thrice the m1 is
-        :type methods_rate: list[numeric]
-        :return: Crossover object
-        :rtype: Crossover
+        Parameters
+        ----------
+        methods : list[Callable[[Chromosome], Genes]]
+            Functions which receives the attributes dict, two Chromosome objects and returns a new genes
+        methods_rate : list[float]
+            The rates the functions tends be randomly chosen when the Crossover object is called
         """
         self.methods = methods
         self.rate = methods_rate
 
-    def __call__(self, parent: Chromosome, donor: Chromosome) -> Chromosome:
-        """Makes the Crossover object a callable one that receives its parameters and returns a new Chromosome. The 
-        parameter first_parent doesn't affect this method. It can receive absolutelly anything without changing the 
-        result. It randomly choices one of the methods and returns the result of passing parent and donor to it. The 
-        random choice takes into consideration the methods_rate of the current object
+    def __call__(self, attributes: dict, parent: Chromosome, donor: Chromosome) -> Chromosome:
+        """Makes the Crossover object a callable one that receives its parameters and returns a new Chromosome
 
-        :param parent: Parent Chromosome
-        :type parent: Chromosome
-        :param donor: Chromosome which genes are supposed to be combined with parent's genes
-        :type donor: Chromosome
-        :return: Child Chromosome which genes are supposed to be a combination between parent's and donor's
-        :rtype: Chromosome
+        Parameters
+        ----------
+        attributes : dict
+            Global parameters
+        parent : Chromosome
+            Parent chromosome
+        donor : Chromosome
+            Donor chromosome
+
+        Returns
+        -------
+        Chromosome
+            Child chromosome
         """
         method = random.choices(self.methods, self.rate)[0]
-        child = Chromosome(genes=method(parent, donor), fitness=None, strategy=parent.strategy + [method], age=0,
-            lineage=[])
+        child = Chromosome(genes=method(parent.genes, donor.genes, attributes), fitness=None,
+            strategy=parent.strategy + [method], age=0, lineage=[])
         return child
 
 
 class Create:
-    """A container for storing genes creation functions and its rates. When called it receives the first_parent 
-    Chromosome and returns a new Chromosome. This class is supposed to receive functions which receive a generic parent 
-    Chromosome and return a whole new genes without any bound to the parent's one. The exceptions are mutate_best and 
-    mutate_first, which respectively returns the result of passing the best and the first parent, respectively, to the 
-    mutate object
-
-    :return: New Chromosome object with the created genes
-    :rtype: Chromosome
+    """A container for storing genes creation functions and its rates
     """
-    __slots__ = ('methods', 'rate', 'first_parent')
+    __slots__ = ('methods', 'rate')
 
-    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[numeric]) -> Create:
-        """Initializes the Crossover object by receiving its parameters
+    def __init__(self, methods: list[Callable[[Chromosome], Genes]], methods_rate: list[float]) -> None:
+        """Initializes the Crossover object
 
-        :param methods: Functions which receives the first_parent Chromosome and returns a new genes
-        :type methods: list[Callable[[Chromosome], Genes]]
-        :param methods_rate: The rate the functions tends be randomly chosen when the Crossover object is called. It 
-            must to have the same lenght as methods. Suppose methods is [m1, m2, m3] and methods_rate is  [1, 2, 3]. m2 
-            tends to be chosen twice the m1 is and m3 thrice the m1 is
-        :type methods_rate: list[numeric]
-        :return: Create object
-        :rtype: Create
+        Parameters
+        ----------
+        methods : list[Callable[[Chromosome], Genes]]
+            Functions which receives the attributes dict and returns a new genes
+        methods_rate : list[float]
+            The rates the functions tends be randomly chosen when the Crossover object is called
         """
         self.methods = methods
         self.rate = methods_rate
-        self.first_parent = None
 
-    def __call__(self, parent: Chromosome = None, donor: Chromosome = None) -> Chromosome:
-        """Makes the Create method a callable one that receives the first_parent parameter and returning a new 
-        Chromosome. It only deals with the parameter first_parent. All the remaining parameters can receive absolutely 
-        anything without changing the result. It randomly choices one of the methods and returns the result of passing  
-        first_parent to it. The random choice takes into consideration the methods_rate of the current object
+    def __call__(self, attributes: dict, parent = None, donor = None) -> Chromosome:
+        """Makes the Create method a callable one that receives the attributes dict and returning a new chromosome
 
-        :param first_parent: It's designed to receive the first candidate created
-        :type first_parent: Chromosome
-        :return: New Chromosome object with the created genes
-        :rtype: Chromosome
+        Parameters
+        ----------
+        attributes : dict
+            Global parameters
+
+        Returns
+        -------
+        Chromosome
+            New chromosome
         """
         method = random.choices(self.methods, self.rate)[0]
-        child = Chromosome(genes=method(self.first_parent), fitness=None, strategy=[method], age=0, lineage=[])
+        child = Chromosome(genes=method(attributes), fitness=None, strategy=[method], age=0, lineage=[])
         return child
 
 
 class Strategies:
-    """A container for sotoring the candidate generation strategies (Create, Mutate and Crossover objects) and its 
-    rates. It must receive only one of each generation strategy (Create, Mutate and Crossover) object
-
-    :return: New Chromosome object with the genes generated by the strategy randomly selected
-    :rtype: Chromosome
+    """A container for storing the candidate generation strategies (Create, Mutate and Crossover objects) and its rates
     """
     __slots__ = ('strategies', 'rate')
 
-    def __init__(self, strategies: Tuple[Mutate, Crossover, Create], strategies_rate: list[numeric]) -> Strategies:
-        """Initializes the Strategies object by receiving its parameters
+    def __init__(self, strategies: Tuple[Mutate, Crossover, Create], strategies_rate: list[float]) -> None:
+        """Initializes the Strategies object
 
-        :param strategies: A list with Create, Mutate and Crossover objects
-        :type strategies: Tuple[Create, Mutate, Crossover]
-        :param strategies_rate: The rate the Mutate, Crossover and Create objects tends be randomly chosen when the 
-            Strategies object is called. It must to have the same lenght as methods. Suppose strategies is [s1, s2, s3] 
-            and strategies_rate is  [1, 2, 3]. s2 tends to be chosen twice the s1 is and s3 thrice the s1 is
-        :type strategies_rate: list[numeric]
-        :return: Strategies object
-        :rtype: Strategies
+        Parameters
+        ----------
+        strategies : Tuple[Mutate, Crossover, Create]
+            A list with Create, Mutate and Crossover objects
+        strategies_rate : list[float]
+            The rates the Mutate, Crossover and Create objects tends be randomly chosen when the Strategies object is
+            called
         """
         self.strategies = strategies
         self.rate = strategies_rate
 
-    def __call__(self, parent: Chromosome, donor: Chromosome) -> Chromosome:
-        """Makes the Strategies method a callable one that receives its parameters and returns a new Chromosome. 
-        Randomly choices one of the strategies and returns the result of passing the inputs to it. The random choice
-        takes into consideration the strategies_rate of the current object
-
-        :param parent: Parent Chromosome
-        :type parent: Chromosome
-        :param donor: Chromosome which genes are supposed to be combined with parent's genes in crossover strategy
-        :type donor: Chromosome
-        :return: New Chromosome object with the genes generated by the strategy randomly selected
-        :rtype: Chromosome
-        """
-        return random.choices(self.strategies, self.rate)[0](parent, donor)
-
-
-def mutate_first(first_parent: Chromosome) -> Genes:
-    """Creation function that receives the Chromosome of the first created parent and pass it to the Mutate object to 
-    return the result. This function is actually a void, it exists only to be called by import and to be override by the
-    actual mutate_first function
-
-    :param first_parent: First created candidate
-    :type first_parent: Chromosome
-    :return: Mutated genes of the first candidate
-    :rtype: Genes
-    """
-    pass
-
-
-def mutate_best(best_candidate: Chromosome) -> Genes:
-    """Creation function that receives the Chromosome of the best candidate and pass it to the Mutate object to return 
-    the result. This function is actually a void, it exists only to be called by import and to be override by the actual mutate_best
-    function
-
-    :param best_candidate: Best candidate
-    :type best_candidate: Chromosome
-    :return: Mutated genes of the best candidate
-    :rtype: Genes
-    """
-    pass
-
 
 class Genetic(ABC):
-    """Genetic algorithm abstract class. This abstract class provides a framework for creating problem-specific genetic
-    algorithms. To use it you must create a class that inherits it. The class that inherits it must to have at least two
-    methods: get_fitness and save
-    
-    :param ABC: Helper class that provides a standard way to create an abstract class using inheritance
-    :type ABC: class
+    """Genetic algorithm abstract class
     """
-    __slots__ = ('first_genes', 'fitness_param', 'strategies', 'max_age', 'pool_size', 'mutate_after_crossover', 
-        'crossover_elitism', 'elitism_rate', 'freedom_rate', 'parallelism', 'local_opt', 'max_seconds', 'time_toler', 
-        'gens_toler', 'max_gens', 'save_directory', 'start_time', 'first_parent', 'lineage_ids', 'best_candidate', 
-        'mutate_methods', 'create_methods', 'crossover_methods')
+    __slots__ = ('first_genes', 'strategies', 'max_age', 'pool_size', 'mutate_after_crossover', 'crossover_elitism',
+        'elitism_rate', 'freedom_rate', 'opt_func', 'max_seconds', 'time_toler', 'gens_toler', 'max_gens',
+        'max_fitness', 'save_directory', 'start_time', 'first_parent', 'lineage_ids', 'best_candidate',
+        'aways_local_opt', 'time_toler_opt', 'gens_toler_opt', 'gen', 'historical_fitnesses', 'attributes',
+        'create_methods', 'mutate_methods', 'crossover_methods', 'last_improvement_time', 'improvements_strategies',
+        'lineage_strategies', 'improvements_gens_diff', 'adapting_rate', 'improvements_increase', 'adapting_args',
+        'last_improvement_gen')
 
-    def __init__(self, first_genes: Chromosome, strategies: Strategies, max_age: int | None, pool_size: int, 
-        mutate_after_crossover: bool, crossover_elitism: list[numeric] | None, 
-        elitism_rate: list[int] | None, freedom_rate: int, parallelism: bool, local_opt: bool, 
-        max_seconds: numeric | None, time_toler: numeric | None, gens_toler: int | None, max_gens: int | None,
-        save_directory: str) -> Genetic:        
-        """Initializes the Genetic object by receiving its parameters
+    def __init__(self, first_genes: Genes, strategies: Strategies, max_age: int | None, pool_size: int, 
+        mutate_after_crossover: bool, crossover_elitism: list[float] | None,  elitism_rate: list[int] | None,
+        freedom_rate: int, parallelism: bool, aways_local_opt: bool, time_toler_opt: float | None,
+        gens_toler_opt: int | None, max_seconds: float | None, time_toler: float | None, gens_toler: int | None,
+        max_gens: int | None, max_fitness: Fitness | None, save_directory: str | None, adapting_rate: float | None,
+        adapting_args: Tuple[str, str] | None, attributes: dict | None) -> None:
+        """Initializes the Genetic object
 
-        :param first_genes: The genes of the first candidate in the genetic algorithm
-        :type first_genes: Chromosome
-        :param strategies: Strategies object
-        :type strategies: Strategies
-        :param max_age: The max amount of times a Chromosome can suffer chaging strategies without improve its fitness.
-            if it's None then only improvements will be accepted
-        :type max_age: int | None
-        :param pool_size: The amount of candidates being optimized together
-        :type pool_size: int
-        :param mutate_after_crossover: If it's True then, after each crossover operation, the resultant child Chromosome
-            will suffer a mutate operation before return to the genetic algorithm, but if it's false the mutation 
-            doesn't occur and the child Chromosome will be returned immediately after the crossover
-        :type mutate_after_crossover: bool
-        :param crossover_elitism: The rate each candidate tends to be selected to be the gene's donor in any crossover 
-            operation from the best to the worst. Its lenght must be equal pool_size value. If pool_size is 3 and 
-            crossover_elitism is [3, 2, 1] the best candidate has the triple of the chance to be selected than the 
-            worst, the medium candidate has double. It can also receive None, and it means all candidates would be 
-            equally probable to be selected for being the genes' donor on a crossover
-        :type crossover_elitism: list[numeric] | None
-        :param elitism_rate: Reprodution rate of each candidate, from the best to the worst. the sum of its elements 
-            also must be less or equal than pool_size. If pool_size is 16 and elitism_rate is [4, 3, 2] it means the 
-            best candidate in the current generation's pool of candidates will provide 4 descendants for the next 
-            generation, the second best will provide 3 and the third best will provide two, then the remains 7 available
-            spaces in the next generation's pool will be filled with one descendant of each one of the seven next 
-            candidates in this order
-        :type elitism_rate: list[int] | None
-        :param freedom_rate: The number of candidate generation strategies (Mutate, Crossover and Create) the candidate 
-            will suffer aways a new candidate is needed to be generated
-        :type freedom_rate: int
-        :param parallelism: If it's True then each fitness calculation will be done in a different process, what changes
-            the whole dynamics of the genetic algorithm. With paraellism enabled, the concept of generations emerges as
-            we can have different candidates being caculated at the same time. If it's False, there will be no
-            generations and candidates' fitnesses will be calculated sequentially
-        :type parallelism: bool
-        :param local_opt: If it's True then every time the algorithm genetic gets a new best candidate it is sent to the
-            local_optimize function (which in this case must be override by the subclass) that is supposed to perform a 
-            local optimization (in the solution-space of the specific problem) over the genes of the best candidate, and
-            then return a new best candidate with the optimized genes
-        :type local_opt: bool
-        :param max_seconds: The max amount of seconds the genetic algorithm can run. Once exceeded this amount, the
-            the running will be stoped and the best candidate will be returned. It can also receive None, and in this 
-            case this limit wouldn't exist
-        :type max_seconds: numeric | None
-        :param time_toler: The max amount of seconds the algorithm can still running without has any improvements on its
-            best candidate's fitness. Once exceeded this amount, the running will be stoped and the best candidate will 
-            be returned. It can also receive None, and in this case this limit wouldn't exist
-        :type time_toler: numeric | None
-        :param gens_toler: The maximum amount of generations the algorithm genetic can run in sequence without having
-            any improvement on it's best parent fitness. It can also receive None and in this case this limit wouldn't 
-            exist. It only works when parallelism is True, otherwise it doesn't affect anything
-        :type gens_toler: int | None
-        :param max_gens: The max amount of generations the genetic algorithm can run. Once exceeded this amount, the
-            the running will be stoped and the best candidate will be returned. It can also receive None, and in this 
-            case this limit wouldn't exist. It only works when parallelism is True, otherwise it doesn't affect anything
-        :type max_gens: int | None
-        :param save_directory: The directory address relative to __main__ where the outputs will be saved. If it's None
-            than it will receive the instant of time the object was created
-        :type save_directory: str
-        :return: Genetic object
-        :rtype: Genetic
+        Parameters
+        ----------
+        first_genes : Genes
+            The genes of the first candidate in the genetic algorithm
+        strategies : Strategies
+            Strategies object
+        max_age : int | None
+            The max amount of times a Chromosome can suffer chaging strategies without improve its fitness
+        pool_size : int
+            The amount of candidates being optimized together
+        mutate_after_crossover : bool
+            If its True, then after after each crossover operation, the resultant child Chromosome will suffer a mutate
+            operation
+        crossover_elitism : list[float] | None
+            The rates each candidate tends to be selected to be the gene's donor in any crossover operation from the
+            best to the worst
+        elitism_rate : list[int] | None
+            Reprodution rate of each candidate, from the best to the worst
+        freedom_rate : int
+            The number of candidate generation strategies (Mutate, Crossover and Create) the candidate will suffer aways
+            a new candidate is needed to be generated
+        parallelism : bool
+            If it's True then each fitness calculation will be done in a different process
+        aways_local_opt : bool
+            If it's True then every time the algorithm genetic gets a new best candidate it is sent to the
+            local_optimize function
+        time_toler_opt : float | None
+            If the time between two improvements is bigger than this, then the new improvement will be sent to the
+            local_optimization function
+        gens_toler_opt : int | None
+            If the generations that passed between two improvements are more than this, then the new improvement will be
+            sent to the local_optimization function
+        max_seconds : float | None
+            The maximum amount of seconds the genetic algorithm can run
+        time_toler : float | None
+            The maximum amount of seconds the algorithm can still running without having any improvements on its best
+            candidate's fitness
+        gens_toler : int | None
+            The maximum amount of generations the algorithm genetic can run in sequence without having any improvement
+            on it's best candidate's fitness
+        max_gens : int | None
+            The maximum amount of generations the genetic algorithm can run
+        max_fitness : Fitness | None
+            The maximum fitness the genetic algorithm can achieve
+        save_directory : str | None
+            The directory address relative to __main__ where the outputs will be saved
+        adapting_rate : float | None
+            The rate the strategies rates its methods rates will be adapted to the historical rate
+        adapting_args : Tuple[str, str] | None
+            Arguments that define the adapting function. It must have two strings, one to define the adapting chance and
+            one to define the adapting target. The adapting chance possible arguments are "frequency" which increases
+            the chance to adapt the lower is the frequency the improvements are achieved and "fitness_difference" which
+            increases the chance to adapt the less significance the improvements have. The adapting target possible
+            arguments are "fitness_increasement" which privilegies the strategies that most contributed with the fitness
+            increasement, "improvements" that privilegies the strategies that generated most best candidates and
+            "lineage" that privilegies the strategies that generated more ancestors
+        attributes : dict | None
+            Global parameters which will be passed to each mutation, crossover and creation operators to be used if
+            needed
         """
+        self.aways_local_opt = aways_local_opt
+        self.gens_toler_opt = gens_toler_opt
+        self.time_toler_opt = time_toler_opt
+        self.crossover_elitism = crossover_elitism
+        self.save_directory = save_directory
         self.strategies = copy.deepcopy(strategies)
         self.max_age = max_age
         self.pool_size = pool_size
         self.mutate_after_crossover = mutate_after_crossover
-        self.crossover_elitism = [1 for _ in range(pool_size)] if crossover_elitism is None else crossover_elitism
         self.elitism_rate = elitism_rate
         self.freedom_rate = freedom_rate
-        self.parallelism = parallelism
-        self.local_opt = local_opt
         self.max_seconds = max_seconds
         self.time_toler = time_toler
         self.gens_toler = gens_toler
         self.max_gens = max_gens
-        self.save_directory = f"{datetime.now().strftime('%Y_%m_%d_%H:%M')}" if save_directory is None \
-            else save_directory
-        os.mkdir(self.save_directory)
-        os.mkdir(f'{self.save_directory}/lineage')
-        os.mkdir(f'{self.save_directory}/improvements')
+        self.max_fitness = max_fitness
+        self.attributes = attributes
+        self.save_directory = save_directory
+        self.adapting_rate = adapting_rate
+        self.adapting_args = adapting_args
+        self.attributes.update({'first_candidate': Chromosome(first_genes, None, [self.load], 0, [], '0_0')})
+        self.attributes.update({'best_candidate': self.attributes['first_candidate']})
         self.start_time = None
-        self.first_parent = Chromosome(genes=first_genes, fitness=None, strategy=[self.load], age=0, lineage=[],
-            label=None)
-        self.first_parent.fitness = self.get_fitness(self.first_parent)
-        self.first_parent.lineage = [self.first_parent]
         self.lineage_ids = []
-        self.best_candidate = None
         for strategy in self.strategies.strategies:
             if type(strategy) is Mutate:
                 self.mutate_methods = strategy
             elif type(strategy) is Create:
                 self.create_methods = strategy
-                self.create_methods.first_parent = self.first_parent
             elif type(strategy) is Crossover:
                 self.crossover_methods = strategy
-        if mutate_first in self.create_methods.methods:
-            self.create_methods.methods[self.create_methods.methods.index(mutate_first)] = self.mutate_first
-        if mutate_best in self.create_methods.methods:
-            self.create_methods.methods[self.create_methods.methods.index(mutate_best)] = self.mutate_best
+        if Genetic.mutate_first in self.create_methods.methods:
+            self.create_methods.methods[self.create_methods.methods.index(Genetic.mutate_first)] = self.mutate_first
+        if Genetic.mutate_best in self.create_methods.methods:
+            self.create_methods.methods[self.create_methods.methods.index(Genetic.mutate_best)] = self.mutate_best
+        self.last_improvement_time = None
+        self.last_improvement_gen = None
+        self.gen = None
+        self.historical_fitnesses = []
+        if type(parallelism) == bool:
+            self.opt_func = self.__get_improvement_mp if parallelism else self.__get_improvement
+        else:
+            self.opt_func = None
+        self.improvements_strategies = {strategy.__class__.__name__:\
+            {method.__name__: 0 for method in strategy.methods} for strategy in self.strategies.strategies}
+        self.lineage_strategies = {strategy.__class__.__name__:\
+            {method.__name__: 0 for method in strategy.methods} for strategy in self.strategies.strategies}
+        self.improvements_increase = {strategy.__class__.__name__:\
+            {method.__name__: 0 for method in strategy.methods} for strategy in self.strategies.strategies}
+        self.improvements_gens_diff = []
+
+    def improvements_diff(self) -> list[float]:
+        """List of differences between each consecutive best candidate's fitness
+
+        Returns
+        -------
+        list[float]
+            List of differences between each consecutive best candidate's fitness
+        """
+        return [self.historical_fitnesses[0] - self.attributes['first_candidate'].fitness] +\
+            [self.historical_fitnesses[i] - self.historical_fitnesses[i-1] for i in\
+            range(1, len(self.historical_fitnesses))]
 
     @abstractmethod
     def get_fitness(self, candidate: Chromosome) -> Fitness:
         """Abstract method which must be override by one which receives a candidate's Chromosome and returns it's
         fitness
 
-        :param candidate: Candidate wich fitness is wanted
-        :type candidate: Fitness
-        :return: Candidate's fitness
-        :rtype: Fitness
+        Parameters
+        ----------
+        candidate : Chromosome
+            Candidate wich fitness is wanted
+
+        Returns
+        -------
+        Fitness
+            Candidate's fitness
         """
         pass
 
     @abstractmethod
     def save(self, candidate: Chromosome, file_name: str, directory: str) -> None:
-        """Abstract method which must be override by one which receives a candidate, a file_name and a directory. This 
-        method which overrides it must receive a candidate's Chromosome, a string which is the name of the file the 
-        candidate will be saved and a string which is the directory where it will be saved than this function must save 
-        the candidate relevant informations in a document named as given in the directory given. The directory is given 
-        relative to __main__
+        """Abstract method which must be override by one which saves the candidate's data in the file named as given by
+        the file_name parameter in the directory given by the directory parameter
 
-        :param candidate: Candidate which is wanted to save
-        :type candidate: Chromosome
-        :param file_name: Name of the file in which the candidate's informations must be saved
-        :type file_name: str
-        :param directory: Directory where the file with the candidate's information must be saved
-        :type directory: str
+        Parameters
+        ----------
+        candidate : Chromosome
+            Candidate which is wanted to save
+        file_name : str
+            Name of the file in which the candidate's informations must be saved
+        directory : str
+            Directory where the file with the candidate's data must be saved
         """
         pass
 
-    def mutate_first(self, first_parent: Chromosome) -> Genes:
-        """The actual mutate_first function. This is a creation function that receives the Chromosome of the first 
-        candidate and pass it to the Mutate object to return the result
+    def mutate_first(self, attributes: dict) -> Genes:
+        """Creation function that returns a mutation of the first candidate
 
-        :param first_parent: First created candidate
-        :type first_parent: Chromosome
-        :return: Mutated genes of the first candidate
-        :rtype: Genes
+        Parameters
+        ----------
+        attributes : dict
+            Global parameters
+
+        Returns
+        -------
+        Genes
+            Mutated genes of the first candidate
         """
-        return self.mutate_methods(self.first_parent).genes
+        return self.mutate_methods(attributes['first_candidate'])
 
-    def mutate_best(self, best_candidate: Chromosome) -> Genes:
-        """The actual mutate_best function. This is a creation function that receives the Chromosome of the best 
-        candidate and pass it to the Mutate object to return the result
+    def mutate_best(self, attributes: dict) -> Genes:
+        """Creation function that returns a mutation of the current best candidate
 
-        :param best_candidate: Best candidate
-        :type best_candidate: Chromosome
-        :return: Mutated genes of the best candidate
-        :rtype: Genes
+        Parameters
+        ----------
+        attributes : dict
+            Global parameters
+
+        Returns
+        -------
+        Genes
+            Mutated genes of the current best candidate
         """
-        return self.mutate_methods(self.best_candidate).genes
+        return self.mutate_methods(attributes['best_candidate'])
 
     def catch(self, candidate: Chromosome) -> None:
-        """Method which will be executed if an error occurs during a candidate generation. It can be override if needed.
-        By default it just raises an exception
+        """Method which will be executed if an error occurs during a candidate generation. It can be override if needed
 
-        :param candidate: Candidate which was being generated while error occurs
-        :type candidate: Chromosome
-        :raises Exception: Raises exception if error occurs during candidate generation
+        Parameters
+        ----------
+        candidate : Chromosome
+            Candidate which was being generated while error occurs
+
+        Raises
+        ------
+        Exception
+            An exception ocurred while generating the candidate
         """
         raise Exception(f'An exception ocurred while generating candidate {candidate.label}.')
 
     @staticmethod
     def display(candidate: Chromosome, timediff: float) -> None:
-        """Generate what is printed on console everytime a new best candidate is reached. It can be override if needed.
-        By default is printed the last improvement's fitness followed by the time it was reached
+        """Generate what is printed on console everytime a new best candidate is achieved
 
-        :param candidate: Best candidate found
-        :type candidate: Chromosome
-        :param timediff: Time difference between the candidate is found and the start of the execution
-        :type timediff: float
+        Parameters
+        ----------
+        candidate : Chromosome
+            Best candidate achieved
+        timediff : float
+            Time difference between the candidate is found and the start of the execution
         """
-        print("{0}\t{1}".format((candidate.fitness), str(timediff)))
+        print("{0}\t{1}\t{2}".format(candidate.label, timediff,candidate.fitness))
 
     def load(self) -> Chromosome:
         """Returns a Chromosome with the genes and the fitness of the first_parent
 
-        :return: Copy of first candidate
-        :rtype: Chromosome
+        Returns
+        -------
+        Chromosome
+            Copy of first candidate
         """
-        return self.first_parent.copy()
+        return self.attributes['first_candidate'].copy()
+
+    @staticmethod
+    def remove_lineage(candidate: Chromosome) -> Chromosome:
+        """Removes the lineage of a candidate
+
+        Parameters
+        ----------
+        candidate : Chromosome
+            Candidate which lineage will be removed
+
+        Returns
+        -------
+        Chromosome
+            Candidate with lineage changed to None
+        """
+        candidate.lineage = []
+        return candidate
 
     def __get_child(self, candidates: list[Chromosome], parent_index: int, queue: mp.Queue = None,
-        child_index: int = None, label: str = None):
-        """Tries to generate a new candidate inside a 'while True' loop with a 'try except' statement which is broke 
-        when the new candidate is successfully generated. If an exception occurs during the candidate generation try, 
-        the function 'catch' will be called with such candidate as argument
+        child_index: int = None, label: str = None) -> Chromosome:
+        """Generate a new candidate
 
-        :param candidates: Pool of candidates
-        :type candidates: list[Chromosome]
-        :param parent_index: Index of the current parent's Chromosome in candidates
-        :type parent_index: int
-        :param queue: Multiprocessing queue by which the candidates are returned in case of parallelism, defaults to 
-            None
-        :type queue: mp.Queue, optional
-        :param child_index: Index of child in the next generation pool. It's used to identify the returned chromosome in
-            the main process in case of parallelism, defaults to None
-        :type child_index: int, optional
-        :param label: Child's Chromosome's label, defaults to None
-        :type label: str, optional
-        :return: Child
-        :rtype: Chromosome
+        Parameters
+        ----------
+        candidates : list[Chromosome]
+            Current generation pool
+        parent_index : int
+            Index of the current parent's Chromosome in candidates
+        queue : mp.Queue, optional
+            Multiprocessing queue by which the candidates are returned in case of parallelism, by default None
+        child_index : int, optional
+            Index of child in the next generation pool, by default None
+        label : str, optional
+            Child's Chromosome's label, by default None
+
+        Returns
+        -------
+        Chromosome
+            Child chromosome
         """
-
-
-        def remove_lineage(candidate: Chromosome) -> Chromosome:
-            """Removes the lineage of a candidate
-            :param candidate: Candidate which lineage will be removed
-            :type candidate: Chromosome
-            :return: Candidate with lineage changed to None
-            :rtype: Chromosome
-            """            
-            candidate.lineage = []
-            return candidate
-
-
         sorted_candidates = copy.copy(candidates)
         sorted_candidates.sort(reverse=True, key=lambda p: p.fitness)
+        donors = list(zip(copy.copy(sorted_candidates), self.crossover_elitism))
         while True:
             try:
+                current_donors = copy.copy(donors)
                 parent = Chromosome(copy.deepcopy(candidates[parent_index].genes))
-                lineage = list(map(remove_lineage, parent.lineage))
+                current_donors = list(filter(lambda x: x[0] != parent, current_donors))
+                lineage = list(map(self.remove_lineage, parent.lineage))
                 for _ in range(self.freedom_rate):
                     strategy = random.choices(self.strategies.strategies, self.strategies.rate)[0]
                     if isinstance(strategy, Crossover):
-                        while True:
-                            donor = random.choices(sorted_candidates, self.crossover_elitism)[0]
-                            if donor != candidates[parent_index]:
-                                break
+                        donor = random.choices([donor[0] for donor in current_donors],
+                            [donor[1] for donor in current_donors])[0]
+                        current_donors = list(filter(lambda x: x[0] != donor, current_donors))
                     else:
                         donor = None
-                    child = strategy(parent, donor)
+                    child = strategy(self.attributes, parent, donor)
                     if isinstance(strategy, Crossover):
-                        lineage += list(map(remove_lineage, copy.copy(donor.lineage)))
+                        lineage += list(map(self.remove_lineage, copy.copy(donor.lineage)))
                         if self.mutate_after_crossover:
-                            child = self.mutate_methods(child)
+                            child = self.mutate_methods(self.attributes, child)
                     parent = child
                 lineage += [child]
                 child.lineage = lineage
@@ -529,51 +525,114 @@ class Genetic(ABC):
         return child
 
     def __local_optimization(self, candidate: Chromosome) -> Chromosome:
-        """Receives a candidate then performs a local optimization on its genes and so returns a new Chromosome with
-        these new genes and its fitness
+        """Performs a local optimization on its genes and then returns a new Chromosome with these new genes and its
+        fitness
 
-        :param candidate: Candidate which genes are wanted to be optimized
-        :type candidate: Chromosome
-        :return: Optimized candidate
-        :rtype: Chromosome
+        Parameters
+        ----------
+        candidate : Chromosome
+            Candidate which genes are wanted to be optimized
+
+        Returns
+        -------
+        Chromosome
+            Optimized candidate
         """
-        if not self.local_opt:
-            return candidate
-        opt_candidate = Chromosome(genes=self.local_optimize(candidate), fitness=None,
-            strategy=candidate.strategy + [self.local_optimize], age=0, lineage=candidate.lineage,
-            label=candidate.label)
-        opt_candidate.lineage += [opt_candidate]
-        opt_candidate.fitness = self.get_fitness(opt_candidate)
-        return opt_candidate
+        if ((self.time_toler_opt is not None and time.time() - self.last_improvement_time > self.time_toler_opt) or\
+            (self.gens_toler_opt is not None and self.gen - self.last_improvement_gen() > self.gens_toler_opt) or\
+                self.aways_local_opt):
+            opt_candidate = Chromosome(genes=self.local_optimize(candidate), fitness=None,
+                strategy=candidate.strategy + [self.local_optimize], age=0, lineage=candidate.lineage,
+                label=candidate.label)
+            opt_candidate.lineage += [opt_candidate]
+            opt_candidate.fitness = self.get_fitness(opt_candidate)
+            return opt_candidate
+        return candidate
+
+    def update_parameters(self) -> None:
+        """Calls update_function sending the genetic object if there was some improvement in the last generation. This
+        function can be override if is needed to update the execution parameters at the end of each generation
+        """
+        if self.adapting_rate is not None and self.adapting_args is not None\
+            and self.last_improvement_gen == self.gen:
+            self.adapt_rates()
+
+    def adapt_rates(self) -> None:
+        """Adapts strategies and methods rates based on adapting_args and on adapting_rate
+
+        Parameters
+        ----------
+        rates_dict : dict
+            Dictionary of rates
+        """
+        if 'frequency' in self.adapting_args:
+            chance_dict = copy.copy(self.improvements_gens_diff)
+            chance_dict.sort()
+            index = bisect_left(chance_dict, self.gen - self.last_improvement_gen, 0, len(chance_dict))
+            difference = len(chance_dict) - index
+            proportion_similar = difference / len(chance_dict)
+        elif 'fitness_difference' in self.adapting_args:
+            chance_dict = copy.copy(self.improvements_diff())
+            chance_dict.sort()
+            index = bisect_left(chance_dict, self.historical_fitnesses[-1] - self.historical_fitnesses[-2],
+                0, len(chance_dict))
+            difference = len(chance_dict) - index
+            proportion_similar = difference / len(self.historical_fitnesses)
+        if 'fitness_increasement' in self.adapting_args:
+            rates_dict = self.improvements_increase
+        elif 'improvements' in self.adapting_args:
+            rates_dict = self.improvements_strategies
+        elif 'lineage' in self.adapting_args:
+            rates_dict = self.lineage_strategies
+        if random.random() < exp(-proportion_similar):
+            for n, strategy in enumerate(self.strategies.strategies):
+                if self.strategies.rate[n] > 0:
+                    self.strategies.rate[n] += self.adapting_rate *\
+                        (sum(rates_dict[strategy.__class__.__name__].values()) - self.strategies.rate[n])
+                for n, method in enumerate(strategy.methods):
+                    if strategy.rate[n] > 0:
+                        strategy.rate[n] += self.adapting_rate *\
+                            (rates_dict[strategy.__class__.__name__][method.__name__] - strategy.rate[n])
 
     def local_optimize(self, candidate: Chromosome) -> Genes:
-        """This method must be override in case of local_opt is True for a method which receives a candidate's 
-        Chromosome and returns its genes locally optimized
+        """Abstract method which must be override in case of local_opt is True for a method which receives a candidate's 
+        chromosome and returns its genes locally optimized
 
-        :param candidate: Candidate which genes are wanted to be optimized
-        :type candidate: Chromosome
-        :raises Exception: Raises exception if this method was not override by the subclass
-        :return: Optimized genes
-        :rtype: Genes
+        Parameters
+        ----------
+        candidate : Chromosome
+            Candidate which genes are wanted to be optimized
+
+        Returns
+        -------
+        Genes
+            Optimized genes
+
+        Raises
+        ------
+        Exception
+            The local_optimize method must be override
         """
         raise Exception(f'The class {self.__class__.__name__} must override the local_optimize method of parent class')
 
-    def __generate_parent(self, queue: mp.Queue = None, label: str = None):
-        """Tries to generate a new candidate using the Create object from strategies inside a 'while True' loop with a 
-        'try except' statement which is broke when the new candidate is successfully generated. If an exception occurs 
-        during the candidate generation try, the function 'catch' will be called with such candidate as argument
+    def __generate_parent(self, queue: mp.Queue = None, label: str = None) -> Chromosome:
+        """Generates a new candidate using the methods from the Create object
 
-        :param queue: Multiprocessing queue by which the candidates are returned in case of parallelism, defaults to 
-            None
-        :type queue: mp.Queue, optional
-        :param label: New parent's Chromosome's label, defaults to None
-        :type label: str, optional
-        :return: New candidate
-        :rtype: Chromosome
+        Parameters
+        ----------
+        queue : mp.Queue, optional
+            Multiprocessing queue by which the candidates are returned in case of parallelism, by default None
+        label : str, optional
+            New parent's chromosome's label, by default None
+
+        Returns
+        -------
+        Chromosome
+            New candidate
         """
         while True:
             try:
-                parent = self.create_methods(self.load())
+                parent = self.create_methods(self.attributes)
                 parent.label = label
                 parent.lineage = [parent]
                 parent.fitness = self.get_fitness(parent)
@@ -584,84 +643,112 @@ class Genetic(ABC):
             queue.put(parent)
         return parent
 
-    def run(self) -> Chromosome:
-        """Starts the genetic algorithm execution. The execution generates some kinds of outputs that will be saved in
-        the directory given by self.directory. Each time that a new best candidate is reached it will be saved at
-        improvements folder. The name of the archive will consist in three numbers separeted from each other by
-        underlines, the first number represents the order in which the improvements were achieved, the second numer
-        represents the generation of the improvement candidate and the last number represents the position of the
-        candidate in the respective generation's population. Also each time we get a new improvement all the candidates
-        the candidates that were used to get to the improvement, it means, all the "ancestors" of the improvement are
-        saved in the lineage folder. The names of the archives saved in the lineage folder has the same pattern as the
-        saved in the improvement folder. The first number represents the order the candidates were saved, the second is
-        its generation and the third is its position in the generation. In the file named "improvements_strategies.log"
-        we have some informations of each improvement achieved during the execution. In this file we have one row for
-        each improvement and in each row, three informations. Firstly the strategies used to get this candidate from the
-        from the parent (and possibly a donor), secondly we have the candidate's fitness and finally we have the
-        execution time that it was obtained. In the file named "lineage_strategies" we have the same informations of
-        "improvements_strategies.log", not just for the improvements, but also for all intermediate candidates used to
-        get to the improvements. Finally int the file named "time_gen.log" we have some kind of matrix in which each row
-        represents a generation, the first column represents the execution time the respective generation was generated,
-        and the subsequent columns represents the fitness of each candidate of the generation ordered by the position of
-        the candidate in the generation
-
-        :return: Best candidate
-        :rtype: Chromosome
+    def __pre_start(self) -> None:
+        """Exexcutes at the start of the run method creating the saving directoy and saving the initial parameters in
+        config.json
         """
+        exclude_list = ('create_methods', 'mutate_methods', 'crossover_methods', 'last_improvement_time', 'gen',
+            'historical_fitnesses', 'opt_func', 'start_time', 'attributes', 'best_candidate', 'lineage_ids',
+            'strategies', 'improvements_strategies', 'lineage_strategies', 'improvements_gens_diff')
+        config_dict = dict()
+        config_dict.update({'first_genes': str(self.attributes['first_candidate'].genes)})
+        for attrib in inspect.getmembers(self):
+            if not attrib[0].startswith('_') and is_jsonable({attrib[0]: attrib[1]}) and not attrib[0] in exclude_list:
+                config_dict.update({attrib[0]: attrib[1]})
+        for attribute in self.attributes:
+            if is_jsonable({attribute: self.attributes[attribute]}) and not attribute in exclude_list:
+                config_dict.update({attribute: self.attributes[attribute]})
+        config_dict.update({'strategies': {'strategies': {strategy.__class__.__name__:\
+            {'methods': [method.__name__ for method in strategy.methods], 'rate': strategy.rate}\
+                for strategy in self.strategies.strategies}, 'rate': self.strategies.rate}})
+        self.crossover_elitism = [1 for _ in range(self.pool_size)] if self.crossover_elitism is None else\
+            self.crossover_elitism
+        if self.opt_func == self.__get_improvement_mp:
+            config_dict.update({'parallelism': True})
+        elif self.opt_func == self.__get_improvement:
+            config_dict.update({'parallelism': False})
+        if self.save_directory is not None and type(self.save_directory) == str:
+            self.save_directory = self.save_directory.rstrip('/') 
+        self.save_directory = f"{datetime.now().strftime('%Y_%m_%d_%H:%M')}" if self.save_directory is None \
+            else self.save_directory
+        os.mkdir(self.save_directory)
+        os.mkdir(f'{self.save_directory}/lineage')
+        os.mkdir(f'{self.save_directory}/improvements')
+        self.attributes['first_candidate'].fitness = self.get_fitness(self.attributes['first_candidate'])
+        self.attributes['first_candidate'].lineage = [self.attributes['first_candidate']]
+        self.attributes['first_candidate'].label = 'first_candidate'
+        self.attributes['best_candidate'] = self.load()
+        self.historical_fitnesses.append(self.attributes['best_candidate'].fitness)
+        config_dict.update({'first_candidate_fitness': self.attributes['first_candidate'].fitness})
+        self.save(self.attributes['first_candidate'], 'first_candidate', self.save_directory)
+        with open(self.save_directory + '/config.json', 'w') as file:
+            file.write(json.dumps(config_dict, indent=4, sort_keys=True))
         self.start_time = time.time()
-        opt_func = self.__get_improvement_mp if self.parallelism else self.__get_improvement
-        n = 0
-        j = 0
-        for timed_out, improvement in opt_func():
-            self.save(improvement, f'{n}_{improvement.label}', f'{self.save_directory}/improvements')
-            improvement.lineage.append(improvement)
-            self.best_candidate = improvement
-            timediff = time.time() - self.start_time
-            self.display(improvement, timediff)
-            with open(f'{self.save_directory}/improvements_strategies.log', 'a') as islog:
-                islog.write(f'{improvement.strategy_str}\t{improvement.fitness}\t{timediff}\n')
-            with open(f'{self.save_directory}/lineage_strategies.log', 'a') as lslog:
-                for ancestor in improvement.lineage:
-                    if not ancestor.label in self.lineage_ids:
-                        self.lineage_ids.append(ancestor.label)
-                        lslog.write(f'{ancestor.strategy_str}\t{ancestor.fitness}\t{timediff}\n')
-                        self.save(ancestor, f'{j}_{ancestor.label}', f'{self.save_directory}/lineage')
-                        j += 1
-            n += 1
+        self.last_improvement_gen = 0
+
+    def _generate_end_json(self) -> None:
+        """Saves the final state of strategies, improvements_strategies, lineage_strategies and
+        improvements_strategies_difference in final.json
+        """
+        end_dict = {
+            'strategies': {'strategies': {strategy.__class__.__name__:\
+                {'methods': [method.__name__ for method in strategy.methods], 'rate': strategy.rate}\
+                    for strategy in self.strategies.strategies}, 'rate': self.strategies.rate},
+            'improvements_strategies': self.improvements_strategies,
+            'lineage_strategies': self.lineage_strategies,
+            'improvements_gens_diff': self.improvements_gens_diff,
+            'improvements_increase': self.improvements_increase,
+            'improvements_diff': self.improvements_diff()
+        }
+        with open(self.save_directory + '/final.json', 'w') as file:
+            file.write(json.dumps(end_dict, indent=4, sort_keys=True))
+
+    def run(self) -> Chromosome:
+        """Starts the genetic algorithm execution
+
+        Returns
+        -------
+        Chromosome
+            Best candidate
+        """
+        for timed_out, improvement, time_diff in self.opt_func():
+            self.display(improvement, time_diff)
             if timed_out:
                 break
-        self.save(improvement, f'{n}_{improvement.label}_best', f'{self.save_directory}')
-        with open(f'{self.save_directory}/strategies_log.txt', 'a') as slog:
-            slog.write('\n---')
+        self._generate_end_json()
         return improvement
 
-    def __get_improvement(self):
-        """Generator of genetic improvements.
+    def __get_improvement(self) -> Tuple[bool, Chromosome]:
+        """Generator of genetic improvements
 
-        :yield: Best candidate achieved until the moment
-        :rtype: Chromosome
+        Yields
+        ------
+        Iterator[Tuple[bool, Chromosome]]
+            Best candidate achieved until the moment
         """
-        best_parent = self.__local_optimization(self.load())
-        best_parent.label = '0_0'
-        yield self.max_seconds is not None and time.time() - self.start_time > self.max_seconds, best_parent
-        best_parent.lineage = []
-        parents = [best_parent]
-        historical_fitnesses = [best_parent.fitness]
-        for n in range(self.pool_size - 1):
-            parent = self.__generate_parent(label=f'{n+1}_{n+1}')
-            if self.max_seconds is not None and time.time() - self.start_time > self.max_seconds:
-                yield True, parent
-            if self.time_toler is not None and time.time() - last_improvement_time > self.time_toler:
-                yield True, best_parent
-            if parent.fitness > best_parent.fitness:
+        self.__pre_start()
+        p_time = 0
+        yield False, self.attributes['best_candidate'], p_time
+        parents = []
+        for n in range(self.pool_size):
+            if self.max_seconds is not None and p_time >= self.max_seconds:
+                yield True, self.attributes['best_candidate'], p_time
+            if self.time_toler is not None and p_time - self.last_improvement_time > self.time_toler:
+                yield True, self.attributes['best_candidate'], p_time
+            if self.max_fitness is not None and parent.fitness >= self.max_fitness:
+                 yield True, self.attributes['best_candidate'], p_time
+            parent = self.__generate_parent(label=f'{n}_{n}')
+            p_time = time.time() - self.start_time
+            if parent.fitness > self.attributes['best_candidate'].fitness:
                 parent = self.__local_optimization(parent)
-                yield False, parent
-                last_improvement_time = time.time()
-                best_parent = parent
-                best_parent.lineage = []
-                historical_fitnesses.append(parent.fitness)
+                yield False, parent, p_time
+                self.last_improvement_time = p_time
+                self.attributes['best_candidate'] = parent
+                self._write_best()
+                self.attributes['best_candidate'].lineage = []
+                self.historical_fitnesses.append(parent.fitness)
             parents.append(parent)
-        lastParentIndex = self.pool_size - 1
+        last_parent_index = self.pool_size - 1
         pindex = 1
         n = self.pool_size
         with open(f'{self.save_directory}/time_gen.log', 'a') as file:
@@ -671,26 +758,29 @@ class Genetic(ABC):
             file.write('\n')
         while True:
             n += 1
-            if self.max_seconds is not None and time.time() - self.start_time > self.max_seconds:
-                yield True, best_parent
-            if self.time_toler is not None and time.time() - last_improvement_time > self.time_toler:
-                yield True, best_parent
-            pindex = pindex - 1 if pindex > 0 else lastParentIndex
+            if self.max_seconds is not None and p_time >= self.max_seconds:
+                yield True, self.attributes['best_candidate'], p_time
+            if self.time_toler is not None and p_time - self.last_improvement_time > self.time_toler:
+                yield True, self.attributes['best_candidate'], p_time
+            if self.max_fitness is not None and self.attributes['best_candidate'].fitness >= self.max_fitness:
+                yield True, self.attributes['best_candidate'], p_time
+            pindex = pindex - 1 if pindex > 0 else last_parent_index
             parent = parents[pindex]
             child = self.__get_child(parents, pindex, label=f'{n}_{pindex}')
+            p_time = time.time() - self.start_time
             if parent.fitness > child.fitness:
                 if self.max_age is None:
                     continue
                 parent.age += 1
                 if self.max_age > parent.age:
                     continue
-                index = bisect_left(historical_fitnesses, child.fitness, 0, len(historical_fitnesses))
-                difference = len(historical_fitnesses) - index
-                proportionSimilar = difference / len(historical_fitnesses)
-                if random.random() < exp(-proportionSimilar):
+                index = bisect_left(self.historical_fitnesses, child.fitness, 0, len(self.historical_fitnesses))
+                difference = len(self.historical_fitnesses) - index
+                proportion_similar = difference / len(self.historical_fitnesses)
+                if random.random() < exp(-proportion_similar):
                     parents[pindex] = child
                     continue
-                parents[pindex] = best_parent
+                parents[pindex] = self.attributes['best_candidate']
                 parent.age = 0
                 continue
             if not child.fitness > parent.fitness:
@@ -699,75 +789,84 @@ class Genetic(ABC):
                 continue
             parents[pindex] = child
             parent.age = 0
-            if child.fitness > best_parent.fitness:
+            if child.fitness > self.attributes['best_candidate'].fitness:
                 child = self.__local_optimization(child)
-                yield False, child
-                last_improvement_time = time.time()
-                best_parent = child
-                best_parent.lineage = []
-                historical_fitnesses.append(child.fitness)
+                yield False, child, p_time
+                self.last_improvement_time = p_time
+                self.attributes['best_candidate'] = child
+                self._write_best()
+                self.attributes['best_candidate'].lineage = []
+                self.historical_fitnesses.append(child.fitness)
+                self.last_improvement_gen = self.gen
             with open(f'{self.save_directory}/time_gen.log', 'a') as file:
                 file.write('{0}'.format(time.time() - self.start_time))
                 for parent in parents:
                     file.write('\t{0}'.format(parent.fitness))
                 file.write('\n')
+            self.update_parameters()
 
-    def __get_improvement_mp(self):
+    def __get_improvement_mp(self) -> Tuple[bool, Chromosome]:
         """Genetic improvements generator using multiprocessing
 
-        :raises Exception: Raises an exception if elitism rate is incompatible with pool size
-        :yield: Best candidate achieved until the moment
-        :rtype: Chromosome
+        Yields
+        ------
+        Iterator[Tuple[bool, Chromosome]]
+            Best candidate achieved until the moment
+
+        Raises
+        ------
+        Exception
+            Elitism rate is incompatible with pool size
         """
+        self.__pre_start()
         elit_size = len(self.elitism_rate) if self.elitism_rate is not None else None
-        last_improvement_time = self.start_time
-        queue = mp.Queue(maxsize=self.pool_size - 1)
+        self.last_improvement_time = self.start_time
+        queue = mp.Queue(maxsize=self.pool_size)
         processes = []
-        gen = 0
+        self.gen = 0
         if elit_size is not None:
             if sum(self.elitism_rate) > self.pool_size:
                 raise Exception('Elitism exceeds pool size.')
-        best_parent = self.__local_optimization(self.load())
-        best_parent.label = '0_0'
-        yield self.max_seconds is not None and time.time() - self.start_time > self.max_seconds, best_parent
-        best_parent.lineage = []
-        parents = [best_parent]
-        historical_fitnesses = [best_parent.fitness]
-        for n in range(self.pool_size - 1):
-            processes.append(mp.Process(target=self.__generate_parent, args=(queue, f'{gen}_{n+1}')))
+        yield False, self.attributes['best_candidate'], 0
+        parents = []
+        for n in range(self.pool_size):
+            processes.append(mp.Process(target=self.__generate_parent, args=(queue, f'{self.gen}_{n}')))
         for process in processes:
             process.start()
-        for _ in range(self.pool_size - 1):
+        for _ in range(self.pool_size):
             parents.append(queue.get())
         for process in processes:
             process.join()
+        gen_time = time.time() - self.start_time
         sorted_next_gen = copy.copy(parents)
         sorted_next_gen.sort(key=lambda c: c.fitness, reverse=False)
         for parent in sorted_next_gen:
-            if parent.fitness > best_parent.fitness:
+            if parent.fitness > self.attributes['best_candidate'].fitness:
                 parent = self.__local_optimization(parent)
-                yield False, parent
-                best_parent = parent
-                best_parent.lineage = []
-                last_improvement_time = time.time()
-                historical_fitnesses.append(parent.fitness)
+                yield False, parent, gen_time
+                self.attributes['best_candidate'] = parent
+                self._write_best(gen_time)
+                self.attributes['best_candidate'].lineage = []
+                self.last_improvement_time = gen_time
+                self.historical_fitnesses.append(parent.fitness)
         parents.sort(key=lambda p: p.fitness, reverse=True)
-        last_improvement_gen = 0
         with open(f'{self.save_directory}/time_gen.log', 'a') as file:
             file.write('{0}'.format(time.time() - self.start_time))
             for parent in parents:
                 file.write('\t{0}'.format(parent.fitness))
             file.write('\n')
         while True:
-            gen += 1
-            if self.max_seconds is not None and time.time() - self.start_time > self.max_seconds:
-                yield True, best_parent
-            if self.max_gens is not None and gen > self.max_gens:
-                yield True, best_parent
-            if self.gens_toler is not None and gen - last_improvement_gen > self.gens_toler + 1:
-                yield True, best_parent
-            if self.time_toler is not None and time.time() - last_improvement_time > self.time_toler:
-                yield True, best_parent
+            self.gen += 1
+            if self.max_seconds is not None and time.time() - self.start_time >= self.max_seconds:
+                yield True, self.attributes['best_candidate'], gen_time
+            if self.max_gens is not None and self.gen >= self.max_gens:
+                yield True, self.attributes['best_candidate'], gen_time
+            if self.gens_toler is not None and self.gen - self.last_improvement_gen() > self.gens_toler + 1:
+                yield True, self.attributes['best_candidate'], gen_time
+            if self.time_toler is not None and time.time() - self.last_improvement_time > self.time_toler:
+                yield True, self.attributes['best_candidate'], gen_time
+            if self.max_fitness is not None and self.attributes['best_candidate'].fitness >= self.max_fitness:
+                yield True, self.attributes['best_candidate'], gen_time
             next_gen = []
             queue = mp.Queue(maxsize=self.pool_size)
             processes = []
@@ -776,15 +875,15 @@ class Genetic(ABC):
                 for pindex in range(elit_size):
                     for i in range(self.elitism_rate[pindex]):
                         processes.append(mp.Process(target=self.__get_child, args=(parents, pindex, queue, i + \
-                            sum(self.elitism_rate[:pindex]), f'{gen}_{i + sum(self.elitism_rate[:pindex])}')))
+                            sum(self.elitism_rate[:pindex]), f'{self.gen}_{i + sum(self.elitism_rate[:pindex])}')))
                 for pindex in range(elit_size, self.pool_size - sum(self.elitism_rate) + elit_size):
                     processes.append(mp.Process(target=self.__get_child, args=(parents, pindex, queue, 
                         sum(self.elitism_rate) + pindex - elit_size, 
-                        f'{gen}_{sum(self.elitism_rate) + pindex - elit_size}')))
+                        f'{self.gen}_{sum(self.elitism_rate) + pindex - elit_size}')))
             else:
                 for pindex in range(self.pool_size):
                     processes.append(mp.Process(target=self.__get_child, args=(parents, pindex, queue, pindex,
-                    f'{gen}_{pindex}')))
+                    f'{self.gen}_{pindex}')))
             for process in processes:
                 process.start()
             for _ in range(self.pool_size):
@@ -793,17 +892,19 @@ class Genetic(ABC):
                 process.join()
             for i in range(self.pool_size):
                 next_gen.append(results[i])
+            gen_time = time.time() - self.start_time
             sorted_next_gen = copy.copy(next_gen)
             sorted_next_gen.sort(key=lambda c: c.fitness, reverse=False)
             for child in sorted_next_gen:
-                if child.fitness > best_parent.fitness:
+                if child.fitness > self.attributes['best_candidate'].fitness:
                     child = self.__local_optimization(child)
-                    yield False, child
-                    best_parent = child
-                    best_parent.lineage = []
-                    historical_fitnesses.append(child.fitness)
-                    last_improvement_gen = gen
-                    last_improvement_time = time.time()
+                    self.attributes['best_candidate'] = child
+                    self._write_best(gen_time)
+                    yield False, child, gen_time
+                    self.attributes['best_candidate'].lineage = []
+                    self.historical_fitnesses.append(child.fitness)
+                    self.last_improvement_time = gen_time
+                    self.last_improvement_gen = self.gen
             for pindex in range(self.pool_size):
                 if next_gen[pindex].fitness < parents[pindex].fitness:
                     if self.max_age is None:
@@ -811,14 +912,15 @@ class Genetic(ABC):
                     parents[pindex].age += 1
                     if parents[pindex].age < self.max_age:
                         continue
-                    index = bisect_left(historical_fitnesses, next_gen[pindex].fitness, 0, len(historical_fitnesses))
-                    difference = len(historical_fitnesses) - index
-                    proportionSimilar = difference / len(historical_fitnesses)
-                    if random.random() < exp(-proportionSimilar):
+                    index = bisect_left(self.historical_fitnesses, next_gen[pindex].fitness, 0,
+                        len(self.historical_fitnesses))
+                    difference = len(self.historical_fitnesses) - index
+                    proportion_similar = difference / len(self.historical_fitnesses)
+                    if random.random() < exp(-proportion_similar):
                         next_gen[pindex].age = parents[pindex].age
                         parents[pindex] = next_gen[pindex]
                         continue
-                    parents[pindex] = copy.deepcopy(best_parent)
+                    parents[pindex] = copy.deepcopy(self.attributes['best_candidate'])
                     parents[pindex].age = 0
                     continue
                 if not next_gen[pindex].fitness > parents[pindex].fitness:
@@ -832,3 +934,71 @@ class Genetic(ABC):
                 for parent in parents:
                     file.write('\t{0}'.format(parent.fitness))
                 file.write('\n')
+            self.update_parameters()
+
+    def _write_best(self, gen_time: float) -> None:
+        """Registers the data of the best candidate
+
+        Parameters
+        ----------
+        gen_time : float
+            The execution time the generation's fitnesses were calculated
+        """
+        if self.mutate_after_crossover:
+            best_candidate_strategy = copy.copy(self.attributes['best_candidate'].strategy)
+            for n, method in enumerate(self.attributes['best_candidate'].strategy):
+                if method in self.crossover_methods.methods:
+                    best_candidate_strategy.remove(self.attributes['best_candidate'].strategy[n+1])
+        for method in best_candidate_strategy:
+            for strategy in self.improvements_increase:
+                if method.__name__ in self.improvements_increase[strategy]:
+                    self.improvements_increase[strategy][method.__name__] +=\
+                        (best_candidate_strategy.count(method)/\
+                            len(best_candidate_strategy)) *\
+                                (self.attributes['best_candidate'].fitness - self.historical_fitnesses[-1])
+                    break
+        self.improvements_gens_diff.append(self.gen - self.last_improvement_gen)
+        self.save(self.attributes['best_candidate'],
+            f"{len(self.historical_fitnesses) -1}_{self.attributes['best_candidate'].label}",
+            f'{self.save_directory}/improvements')
+        for method in best_candidate_strategy:
+            for strategy in self.improvements_strategies:
+                if method.__name__ in self.improvements_strategies[strategy]:
+                    self.improvements_strategies[strategy][method.__name__] +=\
+                        best_candidate_strategy.count(method)
+                    break
+        with open(f'{self.save_directory}/improvements_strategies.log', 'a') as islog:
+            islog.write(f"{self.attributes['best_candidate'].strategy_str}\t\
+{self.attributes['best_candidate'].fitness}\t{gen_time}\n")
+        with open(f'{self.save_directory}/lineage_strategies.log', 'a') as lslog:
+            for ancestor in self.attributes['best_candidate'].lineage:
+                if not ancestor.label in self.lineage_ids:
+                    lslog.write(f'{ancestor.strategy_str}\t{ancestor.fitness}\t{gen_time}\n')
+                    self.save(ancestor, f'{len(self.lineage_ids)}_{ancestor.label}', f'{self.save_directory}/lineage')
+                    self.lineage_ids.append(ancestor.label)
+                    for method in ancestor.strategy:
+                        for strategy in self.lineage_strategies:
+                            if method.__name__ in self.lineage_strategies[strategy]:
+                                self.lineage_strategies[strategy][method.__name__] +=\
+                                    self.attributes['best_candidate'].strategy.count(method)
+                                break
+
+
+def is_jsonable(obj: Any) -> bool:
+    """Verifies if an object is can be serialized to a JSON formatted str
+
+    Parameters
+    ----------
+    obj : Any
+        Object which will be verified
+
+    Returns
+    -------
+    bool
+        True if obj can be serialized to a JSON formatted str, otherwise False
+    """
+    try:
+        json.dumps(obj)
+        return True
+    except:
+        return False

@@ -15,7 +15,7 @@ def Al10() -> MolOpt:
     """
     create_methods = Create([MolOpt.randomize, MolOpt.mutate_first, MolOpt.mutate_best], [1, 0, 0])
     mutate_methods = Mutate([MolOpt.particle_permutation, MolOpt.piece_displacement, MolOpt.particle_displacement,
-        MolOpt.piece_rotation, MolOpt.piece_reflection_replace_original, MolOpt.piece_reflection_replace_opposite,
+        MolOpt.piece_rotation, MolOpt.self_reflection, MolOpt.reflection,
         MolOpt.enlarge, MolOpt.reduce], [0, 1, 1, 1, 1, 1, 1, 1])
     crossover_methods = Crossover([MolOpt.piece_crossover,], [1])
     strategies = Strategies([create_methods, mutate_methods, crossover_methods], [0, 1, 1])
@@ -60,7 +60,7 @@ def Al9Si() -> MolOpt:
     """
     create_methods = Create([MolOpt.randomize, MolOpt.mutate_first, MolOpt.mutate_best], [1, 0, 0])
     mutate_methods = Mutate([MolOpt.particle_permutation, MolOpt.piece_displacement, MolOpt.particle_displacement,
-        MolOpt.piece_rotation, MolOpt.piece_reflection_replace_original, MolOpt.piece_reflection_replace_opposite,
+        MolOpt.piece_rotation, MolOpt.self_reflection, MolOpt.reflection,
         MolOpt.enlarge, MolOpt.reduce], [1, 1, 1, 1, 1, 1, 1, 1])
     crossover_methods = Crossover([MolOpt.piece_crossover], [1])
     strategies = Strategies([create_methods, mutate_methods, crossover_methods], [0, 1, 1])

@@ -227,7 +227,7 @@ class MolOpt(Genetic):
             _random_rotation(attributes['rotation_range']))
 
     @staticmethod
-    def self_reflection(parent: Molpro_Molecule, attributes: dict) -> Molpro_Molecule:
+    def self_mirroring(parent: Molpro_Molecule, attributes: dict) -> Molpro_Molecule:
         """Reflects a piece of the molecule with a reflection plane which contains the geometric center of such
         piece and has a the vector which points from the piece center to the molecule center as normal direction. The
         image piece replaces the object piece
@@ -235,7 +235,7 @@ class MolOpt(Genetic):
         Parameters
         ----------
         parent : Molpro_Molecule
-            Molecule which will suffer the piece reflection
+            Molecule which piece will suffer the mirroring
         attributes : dict
             Global parameters
 
@@ -250,7 +250,7 @@ class MolOpt(Genetic):
             piece_center, True)
 
     @staticmethod
-    def reflection(parent: Molpro_Molecule, attributes: dict) -> Molpro_Molecule:
+    def mirroring(parent: Molpro_Molecule, attributes: dict) -> Molpro_Molecule:
         """Randomly reflects a piece of the molecule with a reflection plane which contains the geometric center of the
         molecule and has the vector which points to the geometric center of such piece as normal. The image piece
         replaces nearests compatible atoms to the geometric center of the image
@@ -258,7 +258,7 @@ class MolOpt(Genetic):
         Parameters
         ----------
         parent : Molpro_Molecule
-            Molecule which will suffer the piece reflection
+            Molecule which piece will suffer the mirroring
         attributes : dict
             Global parameters
 
